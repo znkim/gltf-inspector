@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveUri, safeDecodeUri } from '../loaders/UriResolver';
+import { dirname, resolveUri, safeDecodeUri } from '../loaders/UriResolver';
 
 describe('URI resolution', () => {
   const keys = ['models/Texture A.png', 'buffers/model.bin', 'other/texture.png', 'dup/texture.png'];
@@ -16,5 +16,15 @@ describe('URI resolution', () => {
 
   it('keeps malformed encoded URIs intact', () => {
     expect(safeDecodeUri('%E0%A4%A')).toBe('%E0%A4%A');
+  });
+
+  it('extracts resource directories for loader parse paths', () => {
+    expect(dirname('model.gltf')).toBe('');
+    expect(dirname('models/cube/model.gltf')).toBe('models/cube/');
+  });
+
+  it('resolves sibling bin resources from a gltf parse path', () => {
+    const resourceKeys = ['models/cube/model.gltf', 'models/cube/model.bin'];
+    expect(resolveUri(`${dirname('models/cube/model.gltf')}model.bin`, resourceKeys)?.key).toBe('models/cube/model.bin');
   });
 });

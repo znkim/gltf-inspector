@@ -13,6 +13,12 @@ export function basename(path: string): string {
   return parts[parts.length - 1] ?? normalized;
 }
 
+export function dirname(path: string): string {
+  const normalized = normalizeRelativePath(path);
+  const index = normalized.lastIndexOf('/');
+  return index >= 0 ? normalized.slice(0, index + 1) : '';
+}
+
 export function safeDecodeUri(uri: string): string {
   try {
     return decodeURIComponent(uri);

@@ -6,6 +6,8 @@ The app runs entirely in the browser. Dropped files are read locally through the
 
 Live site: https://znkim.github.io/gltf-inspector/
 
+> Warning: glTF Inspector is currently beta software. Core asset, scene, material, texture, geometry, and validation inspection are usable, but animation, skin, and morph target workflows are still incomplete and should not be treated as fully supported yet.
+
 ## Features
 
 - Open `.glb`, `.gltf`, external resource folders, and `.zip` packages.
