@@ -217,6 +217,17 @@ export function Viewport() {
             <span>{issues[issues.length - 1]?.message}</span>
           </div>
         )}
+        {loading && (
+          <div className="viewport-loading-backdrop">
+            <div className="viewport-loading" role="status" aria-live="polite">
+              <strong>Loading asset</strong>
+              <span>Reading and parsing glTF resources...</span>
+              <div className="viewport-progress" aria-hidden="true">
+                <div />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

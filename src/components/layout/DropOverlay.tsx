@@ -6,6 +6,7 @@ import { getActiveRenderer } from './viewportController';
 
 export function DropOverlay() {
   const [active, setActive] = useState(false);
+  const loading = useAssetStore((state) => state.loading);
   const setAsset = useAssetStore((state) => state.setAsset);
   const setLoading = useAssetStore((state) => state.setLoading);
   const addIssue = useAssetStore((state) => state.addIssue);
@@ -13,7 +14,7 @@ export function DropOverlay() {
   useEffect(() => {
     const onDragOver = (event: DragEvent) => {
       event.preventDefault();
-      setActive(true);
+      setActive(!loading);
     };
     const onDragLeave = (event: DragEvent) => {
       if (event.clientX <= 0 || event.clientY <= 0 || event.clientX >= window.innerWidth || event.clientY >= window.innerHeight) {
@@ -23,6 +24,9 @@ export function DropOverlay() {
     const onDrop = async (event: DragEvent) => {
       event.preventDefault();
       setActive(false);
+      if (loading) {
+        return;
+      }
       const renderer = getActiveRenderer();
       if (!renderer) {
         addIssue({ id: 'renderer-not-ready', severity: 'error', code: 'RENDERER_NOT_READY', message: 'Renderer is not ready yet.' });
@@ -53,7 +57,7 @@ export function DropOverlay() {
       window.removeEventListener('dragleave', onDragLeave);
       window.removeEventListener('drop', dropListener);
     };
-  }, [addIssue, setAsset, setLoading]);
+  }, [addIssue, loading, setAsset, setLoading]);
 
   return <div className={`drop-zone ${active ? 'active' : ''}`}>Drop GLB, glTF resource set, folder, or ZIP</div>;
 }

@@ -24,7 +24,7 @@ const BOX_EDGES = [
 ];
 const DEFAULT_GRID_SIZE = 10000;
 const AXIS_LENGTH = 1;
-const AXIS_RADIUS = 0.035;
+const AXIS_RADIUS = 0.012;
 
 export class HelperManager {
   private readonly root = new Object3D();
@@ -135,7 +135,7 @@ function createAxis(color: number, length: number, radius: number, axis: 'x' | '
     transparent: true
   });
   const shaft = new Mesh(new CylinderGeometry(radius, radius, shaftLength, 12), material);
-  const cone = new Mesh(new ConeGeometry(radius * 3.2, coneLength, 16), material.clone());
+  const cone = new Mesh(new ConeGeometry(radius * 2.3, coneLength, 16), material.clone());
   shaft.renderOrder = -90;
   cone.renderOrder = -90;
   shaft.position.y = shaftLength * 0.5;

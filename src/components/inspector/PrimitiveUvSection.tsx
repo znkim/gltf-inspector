@@ -178,9 +178,13 @@ function drawUvTriangles(context: CanvasRenderingContext2D, triangles: UvTriangl
   context.save();
   context.lineJoin = 'round';
   context.lineCap = 'round';
-  context.lineWidth = Math.max(1, Math.min(width, height) * 0.0045);
+  context.lineWidth = 1;
   context.strokeStyle = '#f7b267';
   context.fillStyle = 'rgba(247, 178, 103, 0.1)';
+  context.shadowColor = '#8f5a20';
+  context.shadowBlur = 0;
+  context.shadowOffsetX = 0.5;
+  context.shadowOffsetY = 0.5;
   for (const triangle of triangles) {
     const [first, second, third] = triangle.points;
     context.beginPath();
@@ -191,10 +195,13 @@ function drawUvTriangles(context: CanvasRenderingContext2D, triangles: UvTriangl
     context.fill();
     context.stroke();
   }
-  context.lineWidth = Math.max(1, Math.min(width, height) * 0.0015);
-  context.strokeStyle = 'rgba(10, 12, 14, 0.8)';
+  context.lineWidth = 1;
+  context.strokeStyle = '#8f5a20';
   context.fillStyle = '#f7b267';
-  const radius = Math.max(1.5, Math.min(width, height) * 0.0045);
+  context.shadowColor = 'transparent';
+  context.shadowOffsetX = 0;
+  context.shadowOffsetY = 0;
+  const radius = Math.max(1, Math.min(width, height) * 0.0028);
   for (const triangle of triangles) {
     for (const point of triangle.points) {
       context.beginPath();

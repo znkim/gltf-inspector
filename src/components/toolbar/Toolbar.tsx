@@ -11,6 +11,7 @@ import { downloadInspectionReport } from '../../inspection/ReportExporter';
 export function Toolbar() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const asset = useAssetStore((state) => state.asset);
+  const loading = useAssetStore((state) => state.loading);
   const clearAsset = useAssetStore((state) => state.clearAsset);
   const setAsset = useAssetStore((state) => state.setAsset);
   const setLoading = useAssetStore((state) => state.setLoading);
@@ -32,7 +33,7 @@ export function Toolbar() {
   const setDisplayRecenter = useViewerStore((state) => state.setDisplayRecenter);
 
   const openFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0) {
+    if (loading || !files || files.length === 0) {
       return;
     }
     const renderer = getActiveRenderer();
@@ -54,11 +55,11 @@ export function Toolbar() {
   return (
     <div className="toolbar">
       <div className="toolbar-title">glTF Inspector</div>
-      <button className="toolbar-button" onClick={() => inputRef.current?.click()}><ToolbarIcon name="open" /> Open</button>
+      <button className="toolbar-button" disabled={loading} onClick={() => inputRef.current?.click()}><ToolbarIcon name="open" /> Open</button>
       <input ref={inputRef} hidden type="file" multiple accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp,.ktx2,.zip" onChange={(event) => void openFiles(event.currentTarget.files)} />
       <button
         className="toolbar-button"
-        disabled={!asset}
+        disabled={!asset || loading}
         onClick={() => {
           clearAsset();
           setSelectedNodeIndex(null);
@@ -66,10 +67,10 @@ export function Toolbar() {
       >
         <ToolbarIcon name="close" /> Close
       </button>
-      <button className="toolbar-button" disabled={!asset} onClick={() => getActiveController()?.focusScene()}><ToolbarIcon name="frame" /> Frame Scene</button>
+      <button className="toolbar-button" disabled={!asset || loading} onClick={() => getActiveController()?.focusScene()}><ToolbarIcon name="frame" /> Frame Scene</button>
       <button
         className="toolbar-button"
-        disabled={!asset || (!selectedScene && selectedNodeIndex === null)}
+        disabled={loading || !asset || (!selectedScene && selectedNodeIndex === null)}
         onClick={() => {
           if (!asset || (!selectedScene && selectedNodeIndex === null)) {
             return;
@@ -121,8 +122,8 @@ export function Toolbar() {
       <label className="toolbar-check"><input type="checkbox" checked={autoFrameSelection} onChange={(event) => setAutoFrameSelection(event.currentTarget.checked)} /> <ToolbarIcon name="target" /> Auto Frame Selection</label>
       <label className="toolbar-check"><input type="checkbox" checked={displayRecenter} onChange={(event) => setDisplayRecenter(event.currentTarget.checked)} /> <ToolbarIcon name="center" /> Display Recenter</label>
       <div className="toolbar-spacer" />
-      <button className="toolbar-button" disabled={!asset} onClick={() => getActiveController()?.screenshot()}><ToolbarIcon name="camera" /> Screenshot</button>
-      <button className="toolbar-button" disabled={!asset} onClick={() => asset && downloadInspectionReport(asset)}><ToolbarIcon name="download" /> Export Report</button>
+      <button className="toolbar-button" disabled={!asset || loading} onClick={() => getActiveController()?.screenshot()}><ToolbarIcon name="camera" /> Screenshot</button>
+      <button className="toolbar-button" disabled={!asset || loading} onClick={() => asset && downloadInspectionReport(asset)}><ToolbarIcon name="download" /> Export Report</button>
     </div>
   );
 }
