@@ -25,27 +25,37 @@ npm run typecheck
 npm run lint
 npm run test
 npm run build
+npm run build:pages
 ```
 
 ## GitHub Pages Deployment
 
-This repository is prepared for GitHub Pages deployment through GitHub Actions.
+This repository is prepared for GitHub Pages deployment from the `docs/` directory.
 
 1. In GitHub, open `Settings -> Pages`.
-2. Set `Build and deployment -> Source` to `GitHub Actions`.
-3. Push to the `main` branch, or run `Deploy to GitHub Pages` manually from the Actions tab.
+2. Set `Build and deployment -> Source` to `Deploy from a branch`.
+3. Select `main` and `/docs`.
+4. Build and commit the Pages output:
 
-The workflow builds `dist/` and deploys it as a Pages artifact. The Pages base path is configured as:
+```bash
+npm run build:pages
+git add docs
+git commit -m "Build GitHub Pages site"
+git push
+```
+
+The Pages base path is configured as:
 
 ```text
 /gltf-inspector/
 ```
 
-If the repository name changes, update `VITE_BASE_PATH` in `.github/workflows/deploy.yml`.
+If the repository name changes, update the `--base` value in the `build:pages` script in `package.json`.
 
 ## Build Notes
 
 - Vite `base` is read from `VITE_BASE_PATH` and defaults to `/` for local development.
+- `npm run build:pages` overrides Vite output to `docs/` and base to `/gltf-inspector/`.
 - Draco and KTX2 decoder paths are resolved from `import.meta.env.BASE_URL`, so they work under the GitHub Pages subpath.
 - `public/.nojekyll` is included so GitHub Pages serves static decoder files directly.
 
