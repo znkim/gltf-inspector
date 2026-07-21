@@ -1,4 +1,7 @@
-# glTF Inspector
+<img width="1714" height="972" alt="image" src="https://github.com/user-attachments/assets/fb53f311-e0af-4e1d-9e0f-48d9f72aa5ea" />
+
+
+# 🛠️ glTF Inspector
 
 Browser-based glTF/GLB inspection tool built with React, TypeScript, Vite, and Three.js.
 
