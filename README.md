@@ -4,6 +4,8 @@ Browser-based glTF/GLB inspection tool built with React, TypeScript, Vite, and T
 
 The app runs entirely in the browser. Dropped files are read locally through the File API and are not uploaded to a server.
 
+Live site: https://znkim.github.io/gltf-inspector/
+
 ## Features
 
 - Open `.glb`, `.gltf`, external resource folders, and `.zip` packages.
@@ -31,6 +33,12 @@ npm run build:pages
 ## GitHub Pages Deployment
 
 This repository is prepared for GitHub Pages deployment from the `docs/` directory.
+
+Published URL:
+
+```text
+https://znkim.github.io/gltf-inspector/
+```
 
 1. In GitHub, open `Settings -> Pages`.
 2. Set `Build and deployment -> Source` to `Deploy from a branch`.
