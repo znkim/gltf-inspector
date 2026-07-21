@@ -19,7 +19,7 @@ export interface TexturePreview {
 
 export async function resolveTexturePreview(asset: LoadedAsset, textureIndex: number): Promise<TexturePreview> {
   const texture = objectValue(asset.source.textures[textureIndex]);
-  const imageIndex = numberValue(texture?.source);
+  const imageIndex = getTextureImageIndex(texture);
   if (imageIndex === null) {
     return { url: null, revoke: false, label: 'no image source' };
   }
@@ -133,6 +133,11 @@ function isKtx2Resource(uri: string | undefined, mimeType: string | null): boole
   const normalizedUri = uri?.toLowerCase() ?? '';
   const path = normalizedUri.split(/[?#]/)[0] ?? normalizedUri;
   return mimeType === 'image/ktx2' || normalizedUri.startsWith('data:image/ktx2') || path.endsWith('.ktx2');
+}
+
+function getTextureImageIndex(texture: GltfJsonObject | null): number | null {
+  const basisuSource = numberValue(objectValue(objectValue(texture?.extensions)?.KHR_texture_basisu)?.source);
+  return basisuSource ?? numberValue(texture?.source);
 }
 
 async function readBufferView(asset: LoadedAsset, bufferViewIndex: number): Promise<Uint8Array | null> {

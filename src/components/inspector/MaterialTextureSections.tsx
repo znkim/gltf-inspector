@@ -72,12 +72,14 @@ export function TextureSection({ asset }: { asset: LoadedAsset }) {
       {asset.source.textures.length === 0 && <div className="tree-kind">No textures.</div>}
       {asset.source.textures.map((texture, index) => {
         const textureObject = objectValue(texture);
-        const imageIndex = numberValue(textureObject?.source);
+        const imageIndex = getTextureImageIndex(textureObject);
+        const basisuImageIndex = getBasisuImageIndex(textureObject);
         const samplerIndex = numberValue(textureObject?.sampler);
         const image = imageIndex !== null ? objectValue(asset.source.images[imageIndex]) : null;
         const uri = stringValue(image?.uri);
         const sampler = samplerIndex !== null ? objectValue(asset.source.samplers[samplerIndex]) : null;
         const title = stringValue(textureObject?.name) ?? stringValue(image?.name) ?? uri?.split(/[\\/]/).pop() ?? `Texture ${index}`;
+        const isKtx2 = basisuImageIndex !== null || stringValue(image?.mimeType) === 'image/ktx2' || uri?.toLowerCase().split(/[?#]/)[0]?.endsWith('.ktx2') === true;
         return (
           <details key={index} className={`resource-card ${highlightedTextures.has(index) ? 'selected' : ''}`}>
             <summary className="resource-card-summary">
@@ -90,6 +92,7 @@ export function TextureSection({ asset }: { asset: LoadedAsset }) {
             </summary>
             <div className="resource-card-body">
               <KeyValue label="Image" value={imageIndex ?? '-'} />
+              <KeyValue label="BasisU Image" value={basisuImageIndex ?? '-'} />
               <KeyValue label="Sampler" value={samplerIndex ?? '-'} />
               <KeyValue label="URI" value={uri ?? (image ? 'embedded' : '-')} />
               <KeyValue label="MIME" value={formatValue(image?.mimeType)} />
@@ -97,7 +100,7 @@ export function TextureSection({ asset }: { asset: LoadedAsset }) {
               <KeyValue label="magFilter" value={formatValue(sampler?.magFilter)} />
               <KeyValue label="wrapS" value={formatValue(sampler?.wrapS)} />
               <KeyValue label="wrapT" value={formatValue(sampler?.wrapT)} />
-              <KeyValue label="KTX2" value={String(uri?.toLowerCase().endsWith('.ktx2') ?? false)} />
+              <KeyValue label="KTX2" value={String(isKtx2)} />
               <KeyValue label="Used By" value={(usage.get(index) ?? []).join(', ') || '-'} />
             </div>
           </details>
@@ -268,6 +271,14 @@ function collectNamedTextureSlots(value: GltfJsonValue | undefined, prefix: stri
 
 function formatTextureSlotLabel(path: string): string {
   return path.replace(/\.extensions\./g, '.').replace(/Texture$/i, '') || 'texture';
+}
+
+function getTextureImageIndex(texture: GltfJsonObject | null): number | null {
+  return getBasisuImageIndex(texture) ?? numberValue(texture?.source);
+}
+
+function getBasisuImageIndex(texture: GltfJsonObject | null): number | null {
+  return numberValue(objectValue(objectValue(texture?.extensions)?.KHR_texture_basisu)?.source);
 }
 
 function collectTextureIndices(value: GltfJsonValue | undefined, indices: Set<number>) {

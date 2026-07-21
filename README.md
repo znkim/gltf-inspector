@@ -47,7 +47,7 @@ https://znkim.github.io/gltf-inspector/
 
 1. In GitHub, open `Settings -> Pages`.
 2. Set `Build and deployment -> Source` to `Deploy from a branch`.
-3. Select `main` and `/docs`.
+3. Select `develop` and `/docs`.
 4. Build and commit the Pages output:
 
 ```bash
