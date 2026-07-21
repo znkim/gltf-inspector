@@ -1,5 +1,4 @@
-<img width="1714" height="972" alt="image" src="https://github.com/user-attachments/assets/fb53f311-e0af-4e1d-9e0f-48d9f72aa5ea" />
-
+<img width="1578" height="932" alt="image" src="https://github.com/user-attachments/assets/68ce7ff9-b3af-423c-a383-8e214abfeff3" />
 
 # 🛠️ glTF Inspector
 
