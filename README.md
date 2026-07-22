@@ -1,86 +1,26 @@
-<img width="1578" height="932" alt="image" src="https://github.com/user-attachments/assets/68ce7ff9-b3af-423c-a383-8e214abfeff3" />
+<p align="center">
+  <img src="public/favicon.svg" width="72" height="72" alt="glTF Inspector logo" />
+</p>
 
-# 🛠️ glTF Inspector
+# glTF Inspector
 
-Browser-based glTF/GLB inspection tool built with React, TypeScript, Vite, and Three.js.
+Browser-based glTF/GLB inspector for scene hierarchy, materials, textures, geometry stats, validation, and debug rendering.
 
-The app runs entirely in the browser. Dropped files are read locally through the File API and are not uploaded to a server.
+<p>
+  <a href="https://znkim.github.io/gltf-inspector/">Live Demo</a>
+  ·
+  <a href="DEVELOPMENT.md">Development Guide</a>
+</p>
 
-Live site: https://znkim.github.io/gltf-inspector/
+<img width="1578" height="932" alt="glTF Inspector preview" src="https://github.com/user-attachments/assets/68ce7ff9-b3af-423c-a383-8e214abfeff3" />
 
 > Warning: glTF Inspector is currently beta software. Core asset, scene, material, texture, geometry, and validation inspection are usable, but animation, skin, and morph target workflows are still incomplete and should not be treated as fully supported yet.
 
-## Features
+## Highlights
 
-- Open `.glb`, `.gltf`, external resource folders, and `.zip` packages.
-- Inspect scene hierarchy, node transforms, primitive geometry, materials, textures, animations, skins, morph targets, and raw JSON.
-- View asset and selection statistics including vertices, triangles, primitives, draw calls, and bounding boxes.
-- Preview texture resources and material-to-texture usage.
-- Render UV mapping previews on canvas.
-- Switch debug render modes: PBR, vertex color, base color, wireframe, triangle color, normals, depth, UV checker, material ID, and node ID.
-- Toggle grid, world axes, display recenter, perspective/orthographic camera, and a viewport orientation gizmo.
-- Validate assets with `gltf-validator` in a Web Worker.
-- Export a JSON inspection report.
+- Open `.glb`, `.gltf`, external resource folders, and `.zip` packages directly in the browser.
+- Inspect scene hierarchy, selection stats, bounding boxes, materials, textures, UV maps, and raw JSON.
+- Switch debug views including PBR, Unlit, Face Orientation, Normal Texture, UV Color, Wireframe, Depth, Material ID, and Node ID.
+- Preview texture resources, material texture bindings, and validation results.
 
-## Development
-
-```bash
-npm install
-npm run dev
-npm run typecheck
-npm run lint
-npm run test
-npm run build
-npm run build:pages
-```
-
-## GitHub Pages Deployment
-
-This repository is prepared for GitHub Pages deployment from the `docs/` directory.
-
-Published URL:
-
-```text
-https://znkim.github.io/gltf-inspector/
-```
-
-1. In GitHub, open `Settings -> Pages`.
-2. Set `Build and deployment -> Source` to `Deploy from a branch`.
-3. Select `develop` and `/docs`.
-4. Build and commit the Pages output:
-
-```bash
-npm run build:pages
-git add docs
-git commit -m "Build GitHub Pages site"
-git push
-```
-
-The Pages base path is configured as:
-
-```text
-/gltf-inspector/
-```
-
-If the repository name changes, update the `--base` value in the `build:pages` script in `package.json`.
-
-## Build Notes
-
-- Vite `base` is read from `VITE_BASE_PATH` and defaults to `/` for local development.
-- `npm run build:pages` overrides Vite output to `docs/` and base to `/gltf-inspector/`.
-- Draco and KTX2 decoder paths are resolved from `import.meta.env.BASE_URL`, so they work under the GitHub Pages subpath.
-- `public/.nojekyll` is included so GitHub Pages serves static decoder files directly.
-
-## Open Source
-
-This project uses open source libraries including:
-
-- Three.js
-- React
-- Vite
-- glTF-Validator
-- meshoptimizer
-- fflate
-- Pretendard
-
-See `package.json` and `package-lock.json` for exact versions.
+Dropped files are read locally through the File API and are not uploaded to a server.

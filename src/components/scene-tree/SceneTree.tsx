@@ -164,12 +164,14 @@ export function SceneTree() {
             {row.kind === 'Primitive' && (
               <button
                 className="tree-visibility"
+                title={isPrimitiveHidden(row, hiddenPrimitives) ? 'Show' : 'Hide'}
+                aria-label={isPrimitiveHidden(row, hiddenPrimitives) ? 'Show' : 'Hide'}
                 onClick={(event) => {
                   event.stopPropagation();
                   setPrimitiveVisible(row, isPrimitiveHidden(row, hiddenPrimitives));
                 }}
               >
-                {isPrimitiveHidden(row, hiddenPrimitives) ? 'Show' : 'Hide'}
+                <TreeActionIcon name={isPrimitiveHidden(row, hiddenPrimitives) ? 'show' : 'hide'} />
               </button>
             )}
           </div>

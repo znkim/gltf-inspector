@@ -743,9 +743,13 @@ button:disabled {
 }
 
 .tree-visibility {
-  min-height: 22px;
-  padding: 0 6px;
-  font-size: 12px;
+  width: 28px;
+  min-height: 24px;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .tree-name {
@@ -755,6 +759,7 @@ button:disabled {
 }
 
 .tree-kind {
+  justify-self: end;
   color: #a8b0b8;
   font-size: 12px;
 }

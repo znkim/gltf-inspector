@@ -44,7 +44,7 @@ export function App() {
       <footer className="app-footer">
         <span className="footer-oss">Open Source: Three.js, React, glTF-Validator, meshoptimizer, fflate, Pretendard</span>
         <span className="footer-meta">
-          <span className="footer-product">glTF Inspector v0.2.0</span>
+          <span className="footer-product">glTF Inspector v0.2.1</span>
           <span className="footer-product">made by znkim</span>
           <a href="https://github.com/znkim/gltf-inspector" target="_blank" rel="noreferrer">github</a>
         </span>
