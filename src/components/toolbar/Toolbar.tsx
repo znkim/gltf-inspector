@@ -8,6 +8,8 @@ import { getActiveController, getActiveRenderer } from '../layout/viewportContro
 import type { RenderMode } from '../../types/gltf';
 import { downloadInspectionReport } from '../../inspection/ReportExporter';
 
+const logoUrl = `${import.meta.env.BASE_URL}favicon.svg`;
+
 export function Toolbar() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const asset = useAssetStore((state) => state.asset);
@@ -27,8 +29,8 @@ export function Toolbar() {
   const setCameraMode = useViewerStore((state) => state.setCameraMode);
   const upAxis = useViewerStore((state) => state.upAxis);
   const setUpAxis = useViewerStore((state) => state.setUpAxis);
-  const autoFrameSelection = useViewerStore((state) => state.autoFrameSelection);
-  const setAutoFrameSelection = useViewerStore((state) => state.setAutoFrameSelection);
+  const autoOrbit = useViewerStore((state) => state.autoOrbit);
+  const setAutoOrbit = useViewerStore((state) => state.setAutoOrbit);
   const displayRecenter = useViewerStore((state) => state.displayRecenter);
   const setDisplayRecenter = useViewerStore((state) => state.setDisplayRecenter);
 
@@ -54,7 +56,7 @@ export function Toolbar() {
 
   return (
     <div className="toolbar">
-      <div className="toolbar-title">glTF Inspector</div>
+      <div className="toolbar-title"><img src={logoUrl} alt="" className="toolbar-logo" /> glTF Inspector</div>
       <button className="toolbar-button" disabled={loading} onClick={() => inputRef.current?.click()}><ToolbarIcon name="open" /> Open</button>
       <input ref={inputRef} hidden type="file" multiple accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp,.ktx2,.zip" onChange={(event) => void openFiles(event.currentTarget.files)} />
       <button
@@ -107,20 +109,49 @@ export function Toolbar() {
         <ToolbarIcon name={upAxis === 'Y' ? 'y-up' : 'z-up'} />
       </button>
       <select value={renderMode} onChange={(event) => setRenderMode(event.currentTarget.value as RenderMode)}>
-        <option value="pbr">PBR</option>
-        <option value="vertex-color">Vertex Color</option>
-        <option value="base-color">Base Color</option>
-        <option value="wireframe">Wireframe</option>
-        <option value="triangle-color">Triangle Color</option>
-        <option value="eye-normal">RelToEye Normals</option>
-        <option value="world-normal">World Normal</option>
-        <option value="linear-depth">Linear Depth</option>
-        <option value="uv-checker">UV Checker</option>
-        <option value="material-id">Material ID</option>
-        <option value="node-id">Node ID</option>
+        <optgroup label="Shading">
+          <option value="pbr">PBR</option>
+          <option value="unlit">Unlit</option>
+          <option value="base-color">Base Color</option>
+          <option value="vertex-color">Vertex Color</option>
+        </optgroup>
+        <optgroup label="Geometry">
+          <option value="face-orientation">Face Orientation</option>
+          <option value="wireframe-white">Wireframe White</option>
+          <option value="wireframe-overlay">Wireframe Overlay</option>
+          <option value="triangle-color">Triangle Color</option>
+        </optgroup>
+        <optgroup label="Normals">
+          <option value="eye-normal">RelToEye Normals</option>
+          <option value="world-normal">World Normal</option>
+          <option value="normal-texture">Normal Texture</option>
+        </optgroup>
+        <optgroup label="UV">
+          <option value="uv-color">UV Color Red(X), Green(Y)</option>
+          <option value="uv-checker">UV Checker</option>
+        </optgroup>
+        <optgroup label="ID / Depth">
+          <option value="linear-depth">Linear Depth</option>
+          <option value="material-id">Material ID</option>
+          <option value="node-id">Node ID</option>
+        </optgroup>
       </select>
-      <label className="toolbar-check"><input type="checkbox" checked={autoFrameSelection} onChange={(event) => setAutoFrameSelection(event.currentTarget.checked)} /> <ToolbarIcon name="target" /> Auto Frame Selection</label>
-      <label className="toolbar-check"><input type="checkbox" checked={displayRecenter} onChange={(event) => setDisplayRecenter(event.currentTarget.checked)} /> <ToolbarIcon name="center" /> Display Recenter</label>
+      <button
+        className={displayRecenter ? 'toolbar-icon-toggle active' : 'toolbar-icon-toggle'}
+        onClick={() => setDisplayRecenter(!displayRecenter)}
+        title="Display Recenter"
+        aria-label="Display Recenter"
+      >
+        <ToolbarIcon name="center" />
+      </button>
+      <button
+        className={autoOrbit ? 'toolbar-icon-toggle active' : 'toolbar-icon-toggle'}
+        onClick={() => setAutoOrbit(!autoOrbit)}
+        title="Auto Orbit"
+        aria-label="Auto Orbit"
+      >
+        <ToolbarIcon name="orbit" />
+      </button>
       <div className="toolbar-spacer" />
       <button className="toolbar-button" disabled={!asset || loading} onClick={() => getActiveController()?.screenshot()}><ToolbarIcon name="camera" /> Screenshot</button>
       <button className="toolbar-button" disabled={!asset || loading} onClick={() => asset && downloadInspectionReport(asset)}><ToolbarIcon name="download" /> Export Report</button>
@@ -137,6 +168,7 @@ type ToolbarIconName =
   | 'axes'
   | 'box'
   | 'center'
+  | 'orbit'
   | 'camera'
   | 'download'
   | 'perspective'
@@ -155,12 +187,23 @@ function ToolbarIcon({ name }: { name: ToolbarIconName }) {
       {name === 'axes' && <path d="M12 3h2v13.2l3.6-3.6L19 14l-6 6-6-6 1.4-1.4 3.6 3.6V3Zm-7 9h5v2H5v-2Zm9-7h5v2h-5V5Z" />}
       {name === 'box' && <path d="m12 2 8 4.5v9L12 20l-8-4.5v-9L12 2Zm0 2.3L7 7.1l5 2.8 5-2.8-5-2.8ZM6 8.8v5.5l5 2.8v-5.5L6 8.8Zm12 0-5 2.8v5.5l5-2.8V8.8Z" />}
       {name === 'center' && <path d="M11 4h2v6h6v2h-6v8h-2v-8H5v-2h6V4Zm-7 7a8 8 0 0 1 8-8v2a6 6 0 0 0-6 6H4Zm16 0h-2a6 6 0 0 0-6-6V3a8 8 0 0 1 8 8Zm-8 10a8 8 0 0 1-8-8h2a6 6 0 0 0 6 6v2Zm0 0v-2a6 6 0 0 0 6-6h2a8 8 0 0 1-8 8Z" />}
+      {name === 'orbit' && <path d="M12 5.5c-3.7 0-6.7 2.3-6.7 5.1 0 1.4.8 2.7 2.1 3.6l-1.2 1.6C4.4 14.5 3.3 12.7 3.3 10.6 3.3 6.6 7.2 3.5 12 3.5h.5l-1.8-1.8L12.1.3 16.4 4.6 12.1 8.9l-1.4-1.4 2-2H12Zm5.8 1.1c1.8 1.3 2.9 3.1 2.9 5.2 0 4-3.9 7.1-8.7 7.1h-.5l1.8 1.8-1.4 1.4-4.3-4.3 4.3-4.3 1.4 1.4-2 2h.7c3.7 0 6.7-2.3 6.7-5.1 0-1.4-.8-2.7-2.1-3.6l1.2-1.6Z" />}
       {name === 'camera' && <path d="M4 7h4l1.5-2h5L16 7h4v12H4V7Zm2 2v8h12V9h-3l-1.5-2h-3L9 9H6Zm6 7a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm0-2a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />}
       {name === 'download' && <path d="M11 4h2v8.2l3.1-3.1 1.4 1.4-5.5 5.5-5.5-5.5 1.4-1.4 3.1 3.1V4ZM5 18h14v2H5v-2Z" />}
       {name === 'perspective' && <path d="M4 5h16l-3 14H7L4 5Zm2.5 2 2.15 10h6.7L17.5 7h-11ZM10 9l2 3 2-3h2.2L12 15.2 7.8 9H10Z" />}
       {name === 'orthographic' && <path d="M5 5h14v14H5V5Zm2 2v10h10V7H7Zm2 2h6v2H9V9Zm0 4h6v2H9v-2Z" />}
-      {name === 'y-up' && <path d="M11 4h2v12.2l3.6-3.6L18 14l-6 6-6-6 1.4-1.4 3.6 3.6V4Zm-6 1h5v2H5V5Zm9 0h5v2h-5V5Z" />}
-      {name === 'z-up' && <path d="M11 4h2v12.2l3.6-3.6L18 14l-6 6-6-6 1.4-1.4 3.6 3.6V4ZM5 5h6v1.6L8.2 10H11v2H5V10.4L7.8 7H5V5Z" />}
+      {name === 'y-up' && (
+        <>
+          <path d="M11 20V7.8l-3.4 3.4L6.2 9.8 12 4l5.8 5.8-1.4 1.4L13 7.8V20h-2Z" />
+          <text x="12" y="23" textAnchor="middle" fontSize="7" fontWeight="800" fill="currentColor">+Y</text>
+        </>
+      )}
+      {name === 'z-up' && (
+        <>
+          <path d="M11 20V7.8l-3.4 3.4L6.2 9.8 12 4l5.8 5.8-1.4 1.4L13 7.8V20h-2Z" />
+          <text x="12" y="23" textAnchor="middle" fontSize="7" fontWeight="800" fill="currentColor">+Z</text>
+        </>
+      )}
     </svg>
   );
 }

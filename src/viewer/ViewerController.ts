@@ -50,6 +50,10 @@ export class ViewerController {
     }
   }
 
+  setBackgroundColor(color: string) {
+    this.rendererManager.setBackgroundColor(color);
+  }
+
   setDisplayTransform(recenter: boolean, upAxis: 'Y' | 'Z'): number[] {
     const displayRoot = this.rendererManager.displayRoot;
     displayRoot.position.set(0, 0, 0);

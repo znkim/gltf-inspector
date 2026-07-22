@@ -129,13 +129,18 @@ export interface LoadedAsset {
 
 export type RenderMode =
   | 'pbr'
+  | 'unlit'
   | 'vertex-color'
   | 'base-color'
-  | 'wireframe'
+  | 'wireframe-white'
+  | 'wireframe-overlay'
   | 'triangle-color'
   | 'world-normal'
   | 'eye-normal'
+  | 'normal-texture'
   | 'linear-depth'
+  | 'face-orientation'
+  | 'uv-color'
   | 'uv-checker'
   | 'material-id'
   | 'node-id';

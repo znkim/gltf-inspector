@@ -1,4 +1,4 @@
-import { BufferAttribute, BufferGeometry, MeshBasicMaterial } from 'three';
+import { BufferAttribute, MeshBasicMaterial, type BufferGeometry } from 'three';
 
 export function createTriangleColorMaterial(): MeshBasicMaterial {
   return new MeshBasicMaterial({
