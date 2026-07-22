@@ -12,7 +12,7 @@ Browser-based glTF/GLB inspector for scene hierarchy, materials, textures, geome
   <a href="DEVELOPMENT.md">Development Guide</a>
 </p>
 
-<img width="1578" height="932" alt="glTF Inspector preview" src="https://github.com/user-attachments/assets/68ce7ff9-b3af-423c-a383-8e214abfeff3" />
+<img width="1412" height="944" alt="image" src="https://github.com/user-attachments/assets/554623de-8e42-4670-965c-61580a6f81b5" />
 
 > Warning: glTF Inspector is currently beta software. Core asset, scene, material, texture, geometry, and validation inspection are usable, but animation, skin, and morph target workflows are still incomplete and should not be treated as fully supported yet.
 
