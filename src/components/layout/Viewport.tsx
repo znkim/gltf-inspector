@@ -20,9 +20,11 @@ export function Viewport() {
   const selectedPrimitive = useSelectionStore((state) => state.selectedPrimitive);
   const setSelectedNodeIndex = useSelectionStore((state) => state.setSelectedNodeIndex);
   const renderMode = useViewerStore((state) => state.renderMode);
+  const backgroundColor = useViewerStore((state) => state.backgroundColor);
+  const setBackgroundColor = useViewerStore((state) => state.setBackgroundColor);
   const cameraMode = useViewerStore((state) => state.cameraMode);
   const upAxis = useViewerStore((state) => state.upAxis);
-  const autoFrameSelection = useViewerStore((state) => state.autoFrameSelection);
+  const autoOrbit = useViewerStore((state) => state.autoOrbit);
   const displayRecenter = useViewerStore((state) => state.displayRecenter);
   const setDisplayOffset = useViewerStore((state) => state.setDisplayOffset);
   const settings = useSettingsStore();
@@ -84,15 +86,35 @@ export function Viewport() {
     const onPointerLeave = () => {
       canvas.style.cursor = 'default';
     };
+    const onDoubleClick = (event: MouseEvent) => {
+      const selection = controller.pick(event);
+      const currentAsset = useAssetStore.getState().asset;
+      if (!selection || !currentAsset) {
+        return;
+      }
+      if (selection.meshIndex !== undefined && selection.primitiveIndex !== undefined) {
+        useSelectionStore.getState().setSelectedPrimitive({
+          nodeIndex: selection.nodeIndex,
+          meshIndex: selection.meshIndex,
+          primitiveIndex: selection.primitiveIndex
+        });
+        controller.focusSelected(currentAsset.inspection.getPrimitiveObject(selection.nodeIndex, selection.meshIndex, selection.primitiveIndex));
+      } else {
+        setSelectedNodeIndex(selection.nodeIndex);
+        controller.focusSelected(currentAsset.inspection.nodeToObject.get(selection.nodeIndex) ?? null);
+      }
+    };
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointerup', onPointerUp);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerleave', onPointerLeave);
+    canvas.addEventListener('dblclick', onDoubleClick);
     return () => {
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerleave', onPointerLeave);
+      canvas.removeEventListener('dblclick', onDoubleClick);
       canvas.style.cursor = 'default';
       observer.disconnect();
       controller.dispose();
@@ -107,6 +129,14 @@ export function Viewport() {
   useEffect(() => {
     getActiveController()?.setRenderMode(renderMode);
   }, [renderMode, asset]);
+
+  useEffect(() => {
+    getActiveController()?.setBackgroundColor(backgroundColor);
+  }, [backgroundColor]);
+
+  useEffect(() => {
+    getActiveController()?.cameraController.setAutoOrbit(autoOrbit);
+  }, [autoOrbit]);
 
   useEffect(() => {
     const selection = useSelectionStore.getState();
@@ -127,23 +157,6 @@ export function Viewport() {
           : currentAsset?.originalModel ?? null;
     getActiveController()?.cameraController.setMode(cameraMode, focusObject);
   }, [cameraMode]);
-
-  useEffect(() => {
-    if (!autoFrameSelection || !asset) {
-      return;
-    }
-    const focusObject =
-      selectedScene
-        ? asset.originalModel
-        : selectedPrimitive
-        ? asset.inspection.getPrimitiveObject(selectedPrimitive.nodeIndex, selectedPrimitive.meshIndex, selectedPrimitive.primitiveIndex)
-        : selectedMesh
-          ? asset.inspection.getMeshPrimitiveObjects(selectedMesh.nodeIndex, selectedMesh.meshIndex)[0] ?? null
-        : selectedNodeIndex !== null
-          ? asset.inspection.nodeToObject.get(selectedNodeIndex) ?? null
-          : null;
-    getActiveController()?.focusSelected(focusObject);
-  }, [asset, autoFrameSelection, selectedMesh, selectedNodeIndex, selectedPrimitive, selectedScene]);
 
   useEffect(() => {
     const controller = getActiveController();
@@ -190,7 +203,7 @@ export function Viewport() {
         <span>Main Frame</span>
         <span className="tree-kind">{loading ? 'Loading' : asset ? 'Ready' : 'No Asset'}</span>
       </div>
-      <div className="viewport-shell">
+      <div className="viewport-shell" style={{ backgroundColor }}>
         <canvas ref={canvasRef} className="viewport" />
         <ViewGizmo />
         <div className="viewport-floating-controls" aria-label="Viewport helpers">
@@ -198,18 +211,23 @@ export function Viewport() {
             className={settings.showGrid ? 'viewport-floating-toggle active' : 'viewport-floating-toggle'}
             onClick={() => settings.setShowGrid(!settings.showGrid)}
             title="Grid"
+            aria-label="Grid"
           >
             <ViewportIcon name="grid" />
-            <span>Grid</span>
           </button>
           <button
             className={settings.showWorldAxes ? 'viewport-floating-toggle active' : 'viewport-floating-toggle'}
             onClick={() => settings.setShowWorldAxes(!settings.showWorldAxes)}
             title="Axes"
+            aria-label="Axes"
           >
             <ViewportIcon name="axes" />
-            <span>Axes</span>
           </button>
+          <label className="viewport-color-control" title="Background Color" aria-label="Background Color">
+            <ViewportIcon name="background" />
+            <span className="viewport-color-swatch" style={{ backgroundColor }} />
+            <input type="color" value={backgroundColor} onChange={(event) => setBackgroundColor(event.currentTarget.value)} />
+          </label>
         </div>
         {!asset && issues.length > 0 && (
           <div className="viewport-message">
@@ -381,11 +399,12 @@ function projectGizmoAxes(): GizmoAxisLayout[] {
   });
 }
 
-function ViewportIcon({ name }: { name: 'grid' | 'axes' }) {
+function ViewportIcon({ name }: { name: 'grid' | 'axes' | 'background' }) {
   return (
     <svg className="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
       {name === 'grid' && <path d="M4 4h16v16H4V4Zm2 2v3h3V6H6Zm5 0v3h2V6h-2Zm4 0v3h3V6h-3ZM6 11v2h3v-2H6Zm5 0v2h2v-2h-2Zm4 0v2h3v-2h-3ZM6 15v3h3v-3H6Zm5 0v3h2v-3h-2Zm4 0v3h3v-3h-3Z" />}
       {name === 'axes' && <path d="M12 3h2v13.2l3.6-3.6L19 14l-6 6-6-6 1.4-1.4 3.6 3.6V3Zm-7 9h5v2H5v-2Zm9-7h5v2h-5V5Z" />}
+      {name === 'background' && <path d="M12 3a9 9 0 1 1 0 18 4.2 4.2 0 0 1-1.7-.3 1.7 1.7 0 0 1-.9-2.4c.3-.5.2-.9-.1-1.2-.3-.3-.8-.4-1.4-.2A3.5 3.5 0 0 1 3 13.6C3 7.7 6.9 3 12 3Zm-4.2 9.5a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Zm3-4.4a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Zm5.4 1.2a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Zm1.1 5.1a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Z" />}
     </svg>
   );
 }

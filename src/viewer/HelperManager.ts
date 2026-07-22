@@ -35,7 +35,7 @@ export class HelperManager {
     this.root.name = 'InspectorHelpers';
     this.grid.name = 'InfiniteGrid';
     this.grid.rotation.x = -Math.PI / 2;
-    this.grid.position.y = 0.002;
+    this.grid.position.y = -0.003;
     this.grid.scale.set(DEFAULT_GRID_SIZE, DEFAULT_GRID_SIZE, 1);
     this.grid.renderOrder = -100;
     this.axes.name = 'WorldAxes';

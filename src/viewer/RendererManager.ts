@@ -10,11 +10,15 @@ export class RendererManager {
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setClearColor(new Color(0x0b0d0f));
+    this.renderer.setClearColor(new Color(0x1e2125));
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.directionalLight.position.set(5, 8, 6);
     this.scene.add(this.hemisphereLight, this.directionalLight);
     this.scene.add(this.displayRoot);
+  }
+
+  setBackgroundColor(color: string) {
+    this.renderer.setClearColor(new Color(color));
   }
 
   resize(width: number, height: number) {

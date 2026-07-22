@@ -16,6 +16,7 @@ export class CameraController {
     this.active = this.perspective;
     this.controls = new OrbitControls(this.active, canvas);
     this.controls.enableDamping = true;
+    this.controls.autoRotateSpeed = 1.2;
   }
 
   resize(width: number, height: number) {
@@ -91,6 +92,10 @@ export class CameraController {
     this.active.position.copy(this.controls.target).add(offset);
     this.active.lookAt(this.controls.target);
     this.controls.update();
+  }
+
+  setAutoOrbit(enabled: boolean) {
+    this.controls.autoRotate = enabled;
   }
 
   update() {
