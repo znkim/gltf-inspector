@@ -10,6 +10,7 @@ import type { AssetBundle } from './AssetBundle';
 import type { BundleFile } from './AssetBundle';
 import { dirname } from './UriResolver';
 import { parseSourceJson } from './GlbParser';
+import { prepareRuntimeGltfData } from './GltfRuntimeCompatibility';
 import { buildSourceDocument, countObjects } from '../inspection/SceneInspector';
 import { buildInspectionIndex } from '../inspection/ThreeGltfAdapter';
 import { classifyExtension } from '../inspection/ExtensionInspector';
@@ -51,7 +52,16 @@ export async function loadGltfAsset(bundle: AssetBundle, renderer: WebGLRenderer
   loader.setMeshoptDecoder(MeshoptDecoder);
 
   const parseStartedAt = performance.now();
-  const gltf = await parseWithLoader(loader, primary);
+  const runtimeData = await prepareRuntimeGltfData(primary.file);
+  for (const warning of runtimeData.warnings) {
+    issues.push({
+      id: `runtime-compat-${warning}`,
+      severity: 'warning',
+      code: 'RUNTIME_EXTENSION_FALLBACK',
+      message: warning
+    });
+  }
+  const gltf = await parseWithLoader(loader, primary, runtimeData.data);
   const parseTimeMs = performance.now() - parseStartedAt;
   draco.dispose();
   ktx2.dispose();
@@ -95,20 +105,18 @@ export async function loadGltfAsset(bundle: AssetBundle, renderer: WebGLRenderer
   };
 }
 
-function parseWithLoader(loader: GLTFLoader, primary: BundleFile): Promise<GLTF> {
+function parseWithLoader(loader: GLTFLoader, primary: BundleFile, data: ArrayBuffer | string): Promise<GLTF> {
   return new Promise((resolve, reject) => {
-    void primary.file.arrayBuffer().then((buffer) => {
-      loader.parse(
-        buffer,
-        dirname(primary.key),
-      (gltf) => {
-        resolve(gltf);
-      },
-      (error) => {
-        reject(error instanceof Error ? error : new Error(String(error)));
-      }
-      );
-    }, (error) => reject(error instanceof Error ? error : new Error(String(error))));
+    loader.parse(
+      data,
+      dirname(primary.key),
+    (gltf) => {
+      resolve(gltf);
+    },
+    (error) => {
+      reject(error instanceof Error ? error : new Error(String(error)));
+    }
+    );
   });
 }
 

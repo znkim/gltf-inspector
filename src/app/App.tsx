@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { SUPPORTED_EXTENSIONS } from '../inspection/ExtensionInspector';
 import { Toolbar } from '../components/toolbar/Toolbar';
 import { SceneTree } from '../components/scene-tree/SceneTree';
 import { InspectorPanel } from '../components/inspector/InspectorPanel';
@@ -8,6 +10,7 @@ import { Viewport } from '../components/layout/Viewport';
 import { DropOverlay } from '../components/layout/DropOverlay';
 
 export function App() {
+  const [aboutOpen, setAboutOpen] = useState(false);
   return (
     <div className="app">
       <Toolbar />
@@ -46,9 +49,36 @@ export function App() {
         <span className="footer-meta">
           <span className="footer-product">glTF Inspector v0.2.1</span>
           <span className="footer-product">made by znkim</span>
+          <button className="footer-link-button" onClick={() => setAboutOpen(true)}>about</button>
           <a href="https://github.com/znkim/gltf-inspector" target="_blank" rel="noreferrer">github</a>
         </span>
       </footer>
+      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
+    </div>
+  );
+}
+
+function AboutDialog({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="about-modal" role="dialog" aria-modal="true" aria-labelledby="about-title" onClick={onClose}>
+      <div className="about-modal-body" onClick={(event) => event.stopPropagation()}>
+        <div className="about-modal-header">
+          <div>
+            <h2 id="about-title">glTF Inspector</h2>
+            <p>Supported extension handling in the current viewer runtime.</p>
+          </div>
+          <button className="about-close" onClick={onClose} aria-label="Close">x</button>
+        </div>
+        <div className="extension-support-list">
+          {SUPPORTED_EXTENSIONS.map((extension) => (
+            <div key={extension.name} className="extension-support-row">
+              <strong>{extension.name}</strong>
+              <span className={`extension-status status-${extension.status}`}>{extension.status}</span>
+              <span>{extension.description}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
