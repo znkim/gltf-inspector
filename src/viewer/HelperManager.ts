@@ -7,12 +7,14 @@ import {
   DoubleSide,
   LineBasicMaterial,
   LineSegments,
+  Matrix4,
   Mesh,
   MeshBasicMaterial,
   Object3D,
   PlaneGeometry,
   ShaderMaterial,
   Vector3,
+  type Camera,
   type Scene
 } from 'three';
 import { geometryLocalBox, nodeOwnBox, nodeSubtreeBoxRelative, transformedLocalBoxCorners, worldAabb } from '../inspection/BoundingBoxInspector';
@@ -25,6 +27,7 @@ const BOX_EDGES = [
 const DEFAULT_GRID_SIZE = 10000;
 const AXIS_LENGTH = 1;
 const AXIS_RADIUS = 0.012;
+const FLOATING_ORIGIN_THRESHOLD = 100000;
 
 export class HelperManager {
   private readonly root = new Object3D();
@@ -34,9 +37,8 @@ export class HelperManager {
   constructor(scene: Scene) {
     this.root.name = 'InspectorHelpers';
     this.grid.name = 'InfiniteGrid';
-    this.grid.rotation.x = -Math.PI / 2;
-    this.grid.position.y = -0.003;
-    this.grid.scale.set(DEFAULT_GRID_SIZE, DEFAULT_GRID_SIZE, 1);
+    this.grid.frustumCulled = false;
+    this.grid.onBeforeRender = (_renderer, _scene, camera) => updateGridCameraUniforms(this.grid.material, camera, this.root);
     this.grid.renderOrder = -100;
     this.axes.name = 'WorldAxes';
     this.axes.renderOrder = -90;
@@ -49,8 +51,15 @@ export class HelperManager {
     this.axes.visible = showAxes;
   }
 
-  updateSelection(object: Object3D | null, highlightObjects: Object3D[], showGeometryLocalBox: boolean, showWorldAabb: boolean) {
+  updateSelection(
+    object: Object3D | null,
+    highlightObjects: Object3D[],
+    showGeometryLocalBox: boolean,
+    showWorldAabb: boolean,
+    anchorObject: Object3D | null = null
+  ) {
     this.clearDynamic();
+    const frame = this.updateFloatingFrame(object ?? highlightObjects[0] ?? anchorObject);
     if (!object) {
       return;
     }
@@ -58,16 +67,16 @@ export class HelperManager {
     if (highlightObjects.length > 0) {
       const color = highlightObjects.length === 1 && highlightObjects[0] !== object ? 0xffd166 : 0x55d6ff;
       for (const highlightObject of highlightObjects) {
-        this.root.add(createSelectionOverlay(highlightObject, color));
+        this.root.add(createSelectionOverlay(highlightObject, color, frame.inverseMatrix));
       }
     } else {
-      this.root.add(createSelectionOverlay(object, 0x55d6ff));
+      this.root.add(createSelectionOverlay(object, 0x55d6ff, frame.inverseMatrix));
     }
     const boxTargets = highlightObjects.length > 0 ? highlightObjects : [object];
     if (showWorldAabb) {
       const box = unionWorldAabb(boxTargets);
       if (!box.isEmpty()) {
-        this.root.add(createBoxLines(box, 0x6aa0e8));
+        this.root.add(createBoxLines(box, 0x6aa0e8, frame.origin));
       }
     }
     if (showGeometryLocalBox) {
@@ -75,22 +84,22 @@ export class HelperManager {
         const mesh = target as Object3D & { geometry?: BufferGeometry };
         const local = mesh.geometry ? geometryLocalBox(mesh.geometry) : null;
         if (local) {
-          this.root.add(createLineFromCorners(transformedLocalBoxCorners(local, target.matrixWorld), 0xf7b267));
+          this.root.add(createLineFromCorners(transformedLocalBoxCorners(local, target.matrixWorld), 0xf7b267, frame.origin));
         }
       }
     }
     const own = nodeOwnBox(object);
     if (!own.isEmpty()) {
-      this.root.add(createBoxLines(own, 0xd95f59));
+      this.root.add(createBoxLines(own, 0xd95f59, frame.origin));
     }
     const subtree = nodeSubtreeBoxRelative(object);
     if (!subtree.isEmpty()) {
       const worldCorners = transformedLocalBoxCorners(subtree, object.matrixWorld);
-      this.root.add(createLineFromCorners(worldCorners, 0x8bd17c));
+      this.root.add(createLineFromCorners(worldCorners, 0x8bd17c, frame.origin));
     }
     const nodeAxes = new AxesHelper(1);
     object.updateWorldMatrix(true, true);
-    nodeAxes.matrix.copy(object.matrixWorld);
+    nodeAxes.matrix.multiplyMatrices(frame.inverseMatrix, object.matrixWorld);
     nodeAxes.matrixAutoUpdate = false;
     this.root.add(nodeAxes);
   }
@@ -112,6 +121,32 @@ export class HelperManager {
       disposeObject(child);
       child.removeFromParent();
     }
+  }
+
+  private updateFloatingFrame(anchorObject: Object3D | null) {
+    const origin = new Vector3();
+    let gridOffsetY = -0.003;
+    if (anchorObject) {
+      const box = worldAabb(anchorObject);
+      if (!box.isEmpty()) {
+        const center = new Vector3();
+        const size = new Vector3();
+        box.getCenter(center);
+        box.getSize(size);
+        gridOffsetY = box.min.y - origin.y - gridDropForSize(size);
+        if (needsFloatingOrigin(center)) {
+          origin.copy(center);
+          gridOffsetY = box.min.y - origin.y - gridDropForSize(size);
+        }
+      }
+    }
+    this.root.position.copy(origin);
+    updateGridPlaneY(this.grid.material, gridOffsetY);
+    this.root.updateWorldMatrix(true, false);
+    return {
+      origin,
+      inverseMatrix: this.root.matrixWorld.clone().invert()
+    };
   }
 }
 
@@ -163,14 +198,23 @@ function createInfiniteGridMaterial(): ShaderMaterial {
       minorSpacing: { value: 1 },
       majorSpacing: { value: 10 },
       minorWidth: { value: 0.0035 },
-      majorWidth: { value: 0.009 }
+      majorWidth: { value: 0.009 },
+      gridSize: { value: DEFAULT_GRID_SIZE },
+      gridPlaneY: { value: -0.003 },
+      relativeCameraPosition: { value: new Vector3() },
+      viewRotationMatrix: { value: new Matrix4() }
     },
     vertexShader: `
-      varying vec3 vWorldPosition;
+      uniform float gridSize;
+      uniform float gridPlaneY;
+      uniform vec3 relativeCameraPosition;
+      uniform mat4 viewRotationMatrix;
+      varying vec2 vGridPosition;
       void main() {
-        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-        vWorldPosition = worldPosition.xyz;
-        gl_Position = projectionMatrix * viewMatrix * worldPosition;
+        vec3 gridPosition = vec3(position.x * gridSize, gridPlaneY, position.y * gridSize);
+        vGridPosition = gridPosition.xz;
+        vec3 viewPosition = (viewRotationMatrix * vec4(gridPosition - relativeCameraPosition, 1.0)).xyz;
+        gl_Position = projectionMatrix * vec4(viewPosition, 1.0);
       }
     `,
     fragmentShader: `
@@ -178,7 +222,7 @@ function createInfiniteGridMaterial(): ShaderMaterial {
       uniform float majorSpacing;
       uniform float minorWidth;
       uniform float majorWidth;
-      varying vec3 vWorldPosition;
+      varying vec2 vGridPosition;
 
       float gridLine(float coordinate, float spacing, float width) {
         float distanceToLine = abs(fract(coordinate / spacing - 0.5) - 0.5) * spacing;
@@ -187,8 +231,8 @@ function createInfiniteGridMaterial(): ShaderMaterial {
       }
 
       void main() {
-        float minor = max(gridLine(vWorldPosition.x, minorSpacing, minorWidth), gridLine(vWorldPosition.z, minorSpacing, minorWidth));
-        float major = max(gridLine(vWorldPosition.x, majorSpacing, majorWidth), gridLine(vWorldPosition.z, majorSpacing, majorWidth));
+        float minor = max(gridLine(vGridPosition.x, minorSpacing, minorWidth), gridLine(vGridPosition.y, minorSpacing, minorWidth));
+        float major = max(gridLine(vGridPosition.x, majorSpacing, majorWidth), gridLine(vGridPosition.y, majorSpacing, majorWidth));
         vec3 minorColor = vec3(0.30, 0.35, 0.39);
         vec3 majorColor = vec3(0.45, 0.51, 0.56);
         vec3 color = mix(minorColor, majorColor, major);
@@ -210,7 +254,7 @@ function disposeShaderMaterial(material: ShaderMaterial | ShaderMaterial[]) {
   }
 }
 
-function createBoxLines(box: Box3, color: number): LineSegments {
+function createBoxLines(box: Box3, color: number, origin: Vector3): LineSegments {
   const corners = [
     new Vector3(box.min.x, box.min.y, box.min.z),
     new Vector3(box.max.x, box.min.y, box.min.z),
@@ -221,7 +265,30 @@ function createBoxLines(box: Box3, color: number): LineSegments {
     new Vector3(box.max.x, box.max.y, box.max.z),
     new Vector3(box.min.x, box.max.y, box.max.z)
   ];
-  return createLineFromCorners(corners, color);
+  return createLineFromCorners(corners, color, origin);
+}
+
+function updateGridPlaneY(material: ShaderMaterial | ShaderMaterial[], gridPlaneY: number) {
+  const target = Array.isArray(material) ? material[0] : material;
+  if (target?.uniforms.gridPlaneY) {
+    target.uniforms.gridPlaneY.value = gridPlaneY;
+  }
+}
+
+function updateGridCameraUniforms(material: ShaderMaterial | ShaderMaterial[], camera: Camera, root: Object3D) {
+  const target = Array.isArray(material) ? material[0] : material;
+  if (!target) {
+    return;
+  }
+  camera.updateMatrixWorld();
+  root.updateWorldMatrix(true, false);
+  const rootPosition = new Vector3().setFromMatrixPosition(root.matrixWorld);
+  const cameraPosition = new Vector3().setFromMatrixPosition(camera.matrixWorld);
+  const relativeCameraPosition = target.uniforms.relativeCameraPosition?.value as Vector3 | undefined;
+  const viewRotationMatrix = target.uniforms.viewRotationMatrix?.value as Matrix4 | undefined;
+  relativeCameraPosition?.copy(cameraPosition.sub(rootPosition));
+  viewRotationMatrix?.copy(camera.matrixWorldInverse);
+  viewRotationMatrix?.setPosition(0, 0, 0);
 }
 
 function unionWorldAabb(objects: Object3D[]): Box3 {
@@ -235,15 +302,15 @@ function unionWorldAabb(objects: Object3D[]): Box3 {
   return box;
 }
 
-function createLineFromCorners(corners: Vector3[], color: number): LineSegments {
-  const points = BOX_EDGES.map((index) => corners[index] ?? new Vector3());
+function createLineFromCorners(corners: Vector3[], color: number, origin: Vector3): LineSegments {
+  const points = BOX_EDGES.map((index) => (corners[index] ?? new Vector3()).clone().sub(origin));
   const geometry = new BufferGeometry().setFromPoints(points);
   const lines = new LineSegments(geometry, new LineBasicMaterial({ color, depthTest: false, depthWrite: false }));
   lines.renderOrder = 30;
   return lines;
 }
 
-function createSelectionOverlay(root: Object3D, color: number): Object3D {
+function createSelectionOverlay(root: Object3D, color: number, inverseHelperMatrix: Matrix4): Object3D {
   const group = new Object3D();
   group.name = 'SelectionHighlight';
   root.updateWorldMatrix(true, true);
@@ -263,7 +330,7 @@ function createSelectionOverlay(root: Object3D, color: number): Object3D {
       transparent: true
     });
     const overlay = new Mesh(target.geometry, material);
-    overlay.matrix.copy(target.matrixWorld);
+    overlay.matrix.multiplyMatrices(inverseHelperMatrix, target.matrixWorld);
     overlay.matrixAutoUpdate = false;
     overlay.renderOrder = 10;
     overlay.userData.inspectorSharedGeometry = true;
@@ -278,13 +345,21 @@ function createSelectionOverlay(root: Object3D, color: number): Object3D {
       wireframe: true
     });
     const outline = new Mesh(target.geometry, outlineMaterial);
-    outline.matrix.copy(target.matrixWorld);
+    outline.matrix.multiplyMatrices(inverseHelperMatrix, target.matrixWorld);
     outline.matrixAutoUpdate = false;
     outline.renderOrder = 11;
     outline.userData.inspectorSharedGeometry = true;
     group.add(outline);
   });
   return group;
+}
+
+function needsFloatingOrigin(center: Vector3): boolean {
+  return Math.max(Math.abs(center.x), Math.abs(center.y), Math.abs(center.z)) >= FLOATING_ORIGIN_THRESHOLD;
+}
+
+function gridDropForSize(size: Vector3): number {
+  return Math.min(Math.max(size.length() * 0.0005, 0.02), 5);
 }
 
 function disposeObject(object: Object3D) {

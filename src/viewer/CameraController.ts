@@ -9,6 +9,7 @@ export class CameraController {
   readonly controls: OrbitControls;
   active: PerspectiveCamera | OrthographicCamera;
   private aspect = 1;
+  private focusRadius = 10;
 
   constructor(canvas: HTMLCanvasElement) {
     this.perspective.position.set(16, 12, 20);
@@ -52,6 +53,7 @@ export class CameraController {
     box.getCenter(center);
     box.getSize(size);
     const radius = Math.max(size.length() * 0.5, 1);
+    this.focusRadius = radius;
     this.controls.target.copy(center);
     const direction = resetViewDirection
       ? new Vector3(1.4, 1.1, 1.6).normalize()
@@ -64,8 +66,7 @@ export class CameraController {
         ? (radius / Math.sin(MathUtils.degToRad(this.active.fov) * 0.5)) * 1.18
         : radius * 4.2;
     this.active.position.copy(center).add(direction.multiplyScalar(fitDistance));
-    this.active.near = Math.max(radius / 1000, 0.001);
-    this.active.far = Math.max(radius * 1000, 1000);
+    this.updateClipPlanes();
     if (this.active instanceof OrthographicCamera) {
       const fitHeight = Math.max(size.y, size.x / this.aspect, size.z / this.aspect, 1);
       this.active.zoom = 2 / (fitHeight * 1.08);
@@ -79,6 +80,7 @@ export class CameraController {
     const distance = Math.max(this.active.position.distanceTo(this.controls.target), 1);
     this.active.position.copy(this.controls.target).add(direction.multiplyScalar(distance));
     this.active.lookAt(this.controls.target);
+    this.updateClipPlanes();
     this.controls.update();
   }
 
@@ -91,6 +93,7 @@ export class CameraController {
     offset.setFromSpherical(spherical);
     this.active.position.copy(this.controls.target).add(offset);
     this.active.lookAt(this.controls.target);
+    this.updateClipPlanes();
     this.controls.update();
   }
 
@@ -99,11 +102,20 @@ export class CameraController {
   }
 
   update() {
+    this.updateClipPlanes();
     this.controls.update();
   }
 
   dispose() {
     this.controls.dispose();
+  }
+
+  private updateClipPlanes() {
+    const radius = Math.max(this.focusRadius, 1);
+    const distance = Math.max(this.active.position.distanceTo(this.controls.target), radius);
+    this.active.near = Math.max(Math.min(radius / 1000, distance / 500), 0.001);
+    this.active.far = Math.max(distance + radius * 100, 25000);
+    this.active.updateProjectionMatrix();
   }
 }
 

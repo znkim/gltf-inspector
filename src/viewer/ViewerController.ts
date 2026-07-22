@@ -96,7 +96,7 @@ export class ViewerController {
     showWorldAabb: boolean
   ) {
     this.helpers.setBaseVisibility(showGrid, showAxes);
-    this.helpers.updateSelection(object, highlightObjects, showGeometryLocalBox, showWorldAabb);
+    this.helpers.updateSelection(object, highlightObjects, showGeometryLocalBox, showWorldAabb, this.asset?.originalModel ?? null);
   }
 
   pick(event: PickPointer): PickSelection | null {
