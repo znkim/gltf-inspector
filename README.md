@@ -24,3 +24,12 @@ Browser-based glTF/GLB inspector for scene hierarchy, materials, textures, geome
 - Preview texture resources, material texture bindings, and validation results.
 
 Dropped files are read locally through the File API and are not uploaded to a server.
+
+## License
+
+Project source code is distributed under the MIT License.
+
+Bundled sample GLB files under `public/samples/` have separate asset licenses and
+are not covered by the project source code license. See
+[`public/samples/NOTICE.md`](public/samples/NOTICE.md) before redistributing the
+sample assets. `DamagedHelmet.glb` is licensed for non-commercial use only.

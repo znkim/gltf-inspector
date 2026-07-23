@@ -59,6 +59,7 @@ export function InspectorPanel() {
         {asset && topTab === 'asset' && (
           <>
             <AssetStats asset={asset} />
+            <AssetFileSection asset={asset} />
             <section className="section">
               <h3 className="section-title">Asset</h3>
               <KeyValue label="Nodes" value={asset.source.nodes.length} />
@@ -234,6 +235,33 @@ function AssetStats({ asset }: { asset: LoadedAsset }) {
   );
 }
 
+function AssetFileSection({ asset }: { asset: LoadedAsset }) {
+  const primary = asset.bundle.findPrimary();
+  const files = Array.from(asset.bundle.files.values()).sort((a, b) => a.key.localeCompare(b.key));
+  const resources = files.filter((file) => file !== primary);
+  return (
+    <section className="section">
+      <h3 className="section-title">Loaded Files</h3>
+      <KeyValue label="Primary" value={primary ? primary.key : '-'} />
+      <KeyValue label="Primary Size" value={primary ? bytes(primary.size) : '-'} />
+      <KeyValue label="Resources" value={resources.length} />
+      <KeyValue label="Total Size" value={bytes(asset.bundle.totalSize())} />
+      {resources.length > 0 && (
+        <div className="resource-file-list">
+          {resources.map((file) => (
+            <div key={file.key} className="resource-file-row">
+              <span className="mono">{file.key}</span>
+              <span className="tree-kind">{resourceKind(file.key)}</span>
+              <span className="mono">{bytes(file.size)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {resources.length === 0 && <div className="tree-kind">No external buffers or textures in this bundle.</div>}
+    </section>
+  );
+}
+
 function SelectionStats({
   asset,
   selectedScene,
@@ -391,4 +419,31 @@ function jsonValue(value: unknown): string {
     return '-';
   }
   return typeof value === 'object' ? JSON.stringify(value) : String(value);
+}
+
+function bytes(value: number): string {
+  if (value > 1024 * 1024) {
+    return `${(value / 1024 / 1024).toFixed(2)} MiB`;
+  }
+  if (value > 1024) {
+    return `${(value / 1024).toFixed(1)} KiB`;
+  }
+  return `${value} B`;
+}
+
+function resourceKind(path: string): string {
+  const extension = path.split('.').pop()?.toLowerCase();
+  if (!extension) {
+    return 'resource';
+  }
+  if (['bin'].includes(extension)) {
+    return 'buffer';
+  }
+  if (['png', 'jpg', 'jpeg', 'webp', 'ktx2'].includes(extension)) {
+    return 'texture';
+  }
+  if (['gltf', 'glb'].includes(extension)) {
+    return 'gltf';
+  }
+  return extension;
 }

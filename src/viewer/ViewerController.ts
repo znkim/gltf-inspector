@@ -1,5 +1,5 @@
 import { Box3, Vector3, type Object3D } from 'three';
-import type { LoadedAsset, RenderMode } from '../types/gltf';
+import type { EnvironmentMode, LightingMode, LoadedAsset, RenderMode } from '../types/gltf';
 import type { PickSelection } from '../inspection/InspectionIndex';
 import { CameraController } from './CameraController';
 import { HelperManager } from './HelperManager';
@@ -52,6 +52,14 @@ export class ViewerController {
 
   setBackgroundColor(color: string) {
     this.rendererManager.setBackgroundColor(color);
+  }
+
+  setLightingMode(mode: LightingMode) {
+    this.rendererManager.setLightingMode(mode);
+  }
+
+  setEnvironmentMode(mode: EnvironmentMode) {
+    this.rendererManager.setEnvironmentMode(mode);
   }
 
   setDisplayTransform(recenter: boolean, upAxis: 'Y' | 'Z'): number[] {

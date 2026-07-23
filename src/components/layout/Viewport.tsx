@@ -2,11 +2,13 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { Vector3 } from 'three';
 import { ViewerController } from '../../viewer/ViewerController';
 import type { ViewAxis } from '../../viewer/CameraController';
+import { loadGltfAsset } from '../../loaders/GltfAssetLoader';
+import { bundleFromSampleAsset, SAMPLE_ASSETS, type SampleAsset } from '../../loaders/SampleAssets';
 import { useAssetStore } from '../../state/assetStore';
 import { useSelectionStore } from '../../state/selectionStore';
 import { useSettingsStore } from '../../state/settingsStore';
 import { useViewerStore } from '../../state/viewerStore';
-import { getActiveController, setActiveController } from './viewportController';
+import { getActiveController, getActiveRenderer, setActiveController } from './viewportController';
 
 export function Viewport() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -14,12 +16,18 @@ export function Viewport() {
   const asset = useAssetStore((state) => state.asset);
   const issues = useAssetStore((state) => state.issues);
   const loading = useAssetStore((state) => state.loading);
+  const clearAsset = useAssetStore((state) => state.clearAsset);
+  const setAsset = useAssetStore((state) => state.setAsset);
+  const setLoading = useAssetStore((state) => state.setLoading);
+  const addIssue = useAssetStore((state) => state.addIssue);
   const selectedScene = useSelectionStore((state) => state.selectedScene);
   const selectedNodeIndex = useSelectionStore((state) => state.selectedNodeIndex);
   const selectedMesh = useSelectionStore((state) => state.selectedMesh);
   const selectedPrimitive = useSelectionStore((state) => state.selectedPrimitive);
   const setSelectedNodeIndex = useSelectionStore((state) => state.setSelectedNodeIndex);
   const renderMode = useViewerStore((state) => state.renderMode);
+  const lightingMode = useViewerStore((state) => state.lightingMode);
+  const environmentMode = useViewerStore((state) => state.environmentMode);
   const backgroundColor = useViewerStore((state) => state.backgroundColor);
   const setBackgroundColor = useViewerStore((state) => state.setBackgroundColor);
   const cameraMode = useViewerStore((state) => state.cameraMode);
@@ -28,6 +36,32 @@ export function Viewport() {
   const displayRecenter = useViewerStore((state) => state.displayRecenter);
   const setDisplayOffset = useViewerStore((state) => state.setDisplayOffset);
   const settings = useSettingsStore();
+
+  const openSample = async (sample: SampleAsset) => {
+    if (loading) {
+      return;
+    }
+    const renderer = getActiveRenderer();
+    if (!renderer) {
+      addIssue({ id: 'renderer-not-ready', severity: 'error', code: 'RENDERER_NOT_READY', message: 'Renderer is not ready yet.' });
+      return;
+    }
+    setLoading(true);
+    try {
+      const bundle = await bundleFromSampleAsset(sample);
+      setAsset(await loadGltfAsset(bundle, renderer));
+      useSelectionStore.getState().setSelectedNodeIndex(null);
+    } catch (error) {
+      clearAsset();
+      addIssue({
+        id: `sample-${sample.id}-${Date.now()}`,
+        severity: 'error',
+        code: 'LOAD_FAILED',
+        message: error instanceof Error ? error.message : String(error)
+      });
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!canvasRef.current) {
@@ -135,6 +169,14 @@ export function Viewport() {
   }, [backgroundColor]);
 
   useEffect(() => {
+    getActiveController()?.setLightingMode(lightingMode);
+  }, [lightingMode]);
+
+  useEffect(() => {
+    getActiveController()?.setEnvironmentMode(environmentMode);
+  }, [environmentMode]);
+
+  useEffect(() => {
     getActiveController()?.cameraController.setAutoOrbit(autoOrbit);
   }, [autoOrbit]);
 
@@ -235,6 +277,7 @@ export function Viewport() {
             <span>{issues[issues.length - 1]?.message}</span>
           </div>
         )}
+        {!asset && issues.length === 0 && !loading && <SampleAssetPicker onOpenSample={(sample) => void openSample(sample)} />}
         {loading && (
           <div className="viewport-loading-backdrop">
             <div className="viewport-loading" role="status" aria-live="polite">
@@ -246,6 +289,35 @@ export function Viewport() {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function SampleAssetPicker({ onOpenSample }: { onOpenSample: (sample: SampleAsset) => void }) {
+  return (
+    <div className="sample-picker" aria-label="Sample assets">
+      <div className="sample-picker-header">
+        <strong>Open a sample GLB</strong>
+        <span>or drag a glTF asset into the viewport</span>
+      </div>
+      <div className="sample-picker-list">
+        {SAMPLE_ASSETS.map((sample) => (
+          <button key={sample.id} className="sample-picker-item" onClick={() => onOpenSample(sample)}>
+            <img
+              className="sample-picker-thumbnail"
+              src={`${import.meta.env.BASE_URL}thumbnails/${sample.thumbnailFileName}`}
+              alt=""
+              loading="lazy"
+              draggable={false}
+            />
+            <span className="sample-picker-copy">
+              <strong>{sample.name}</strong>
+              <span>{sample.description}</span>
+              <small>{sample.license}</small>
+            </span>
+          </button>
+        ))}
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { useAssetStore } from '../../state/assetStore';
 import { useSelectionStore } from '../../state/selectionStore';
 import { useViewerStore } from '../../state/viewerStore';
 import { getActiveController, getActiveRenderer } from '../layout/viewportController';
-import type { RenderMode } from '../../types/gltf';
+import type { EnvironmentMode, LightingMode, RenderMode } from '../../types/gltf';
 import { downloadInspectionReport } from '../../inspection/ReportExporter';
 
 const logoUrl = `${import.meta.env.BASE_URL}favicon.svg`;
@@ -25,6 +25,10 @@ export function Toolbar() {
   const setSelectedNodeIndex = useSelectionStore((state) => state.setSelectedNodeIndex);
   const renderMode = useViewerStore((state) => state.renderMode);
   const setRenderMode = useViewerStore((state) => state.setRenderMode);
+  const lightingMode = useViewerStore((state) => state.lightingMode);
+  const setLightingMode = useViewerStore((state) => state.setLightingMode);
+  const environmentMode = useViewerStore((state) => state.environmentMode);
+  const setEnvironmentMode = useViewerStore((state) => state.setEnvironmentMode);
   const cameraMode = useViewerStore((state) => state.cameraMode);
   const setCameraMode = useViewerStore((state) => state.setCameraMode);
   const upAxis = useViewerStore((state) => state.upAxis);
@@ -108,34 +112,69 @@ export function Toolbar() {
       >
         <ToolbarIcon name={upAxis === 'Y' ? 'y-up' : 'z-up'} />
       </button>
-      <select value={renderMode} onChange={(event) => setRenderMode(event.currentTarget.value as RenderMode)}>
-        <optgroup label="Shading">
-          <option value="pbr">PBR</option>
-          <option value="unlit">Unlit</option>
-          <option value="base-color">Base Color</option>
-          <option value="vertex-color">Vertex Color</option>
-        </optgroup>
-        <optgroup label="Geometry">
-          <option value="face-orientation">Face Orientation</option>
-          <option value="wireframe-white">Wireframe White</option>
-          <option value="wireframe-overlay">Wireframe Overlay</option>
-          <option value="triangle-color">Triangle Color</option>
-        </optgroup>
-        <optgroup label="Normals">
-          <option value="eye-normal">RelToEye Normals</option>
-          <option value="world-normal">World Normal</option>
-          <option value="normal-texture">Normal Texture</option>
-        </optgroup>
-        <optgroup label="UV">
-          <option value="uv-color">UV Color Red(X), Green(Y)</option>
-          <option value="uv-checker">UV Checker</option>
-        </optgroup>
-        <optgroup label="ID / Depth">
-          <option value="linear-depth">Linear Depth</option>
-          <option value="material-id">Material ID</option>
-          <option value="node-id">Node ID</option>
-        </optgroup>
-      </select>
+      <label className="toolbar-field">
+        <span>Render</span>
+        <select className="toolbar-select" value={renderMode} onChange={(event) => setRenderMode(event.currentTarget.value as RenderMode)} title="Render Mode" aria-label="Render Mode">
+          <optgroup label="Shading">
+            <option value="pbr">PBR</option>
+            <option value="unlit">Unlit</option>
+            <option value="base-color">Base Color</option>
+            <option value="vertex-color">Vertex Color</option>
+          </optgroup>
+          <optgroup label="Geometry">
+            <option value="face-orientation">Face Orientation</option>
+            <option value="wireframe-white">Wire White</option>
+            <option value="wireframe-overlay">Wire Overlay</option>
+            <option value="triangle-color">Triangle Color</option>
+          </optgroup>
+          <optgroup label="Normals">
+            <option value="eye-normal">Eye Normal</option>
+            <option value="world-normal">World Normal</option>
+            <option value="normal-texture">Normal Texture</option>
+          </optgroup>
+          <optgroup label="UV">
+            <option value="uv-color">UV Color</option>
+            <option value="uv-checker">UV Checker</option>
+          </optgroup>
+          <optgroup label="ID / Depth">
+            <option value="linear-depth">Linear Depth</option>
+            <option value="material-id">Material ID</option>
+            <option value="node-id">Node ID</option>
+          </optgroup>
+        </select>
+      </label>
+      <label className="toolbar-field">
+        <span>Light</span>
+        <select
+          className="toolbar-select compact"
+          value={lightingMode}
+          onChange={(event) => setLightingMode(event.currentTarget.value as LightingMode)}
+          title="Lighting Mode"
+          aria-label="Lighting Mode"
+        >
+          <option value="studio">Studio</option>
+          <option value="neutral">Neutral</option>
+          <option value="bright">Bright</option>
+          <option value="flat">Flat</option>
+          <option value="none">None</option>
+        </select>
+      </label>
+      <label className="toolbar-field">
+        <span>Env</span>
+        <select
+          className="toolbar-select compact"
+          value={environmentMode}
+          onChange={(event) => setEnvironmentMode(event.currentTarget.value as EnvironmentMode)}
+          title="Lighting Environment"
+          aria-label="Lighting Environment"
+        >
+          <option value="none">None</option>
+          <option value="studio">Studio</option>
+          <option value="day">Day</option>
+          <option value="sunset">Sunset</option>
+          <option value="night">Night</option>
+        </select>
+      </label>
       <button
         className={displayRecenter ? 'toolbar-icon-toggle active' : 'toolbar-icon-toggle'}
         onClick={() => setDisplayRecenter(!displayRecenter)}

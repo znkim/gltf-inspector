@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { RenderMode } from '../types/gltf';
+import type { EnvironmentMode, LightingMode, RenderMode } from '../types/gltf';
 
 export interface RuntimeInfo {
   webglVersion: string;
@@ -14,6 +14,8 @@ export interface RuntimeInfo {
 
 interface ViewerState {
   renderMode: RenderMode;
+  lightingMode: LightingMode;
+  environmentMode: EnvironmentMode;
   backgroundColor: string;
   cameraMode: 'perspective' | 'orthographic';
   upAxis: 'Y' | 'Z';
@@ -23,6 +25,8 @@ interface ViewerState {
   fps: number;
   runtimeInfo: RuntimeInfo | null;
   setRenderMode: (mode: RenderMode) => void;
+  setLightingMode: (mode: LightingMode) => void;
+  setEnvironmentMode: (mode: EnvironmentMode) => void;
   setBackgroundColor: (color: string) => void;
   setCameraMode: (mode: 'perspective' | 'orthographic') => void;
   setUpAxis: (axis: 'Y' | 'Z') => void;
@@ -35,6 +39,8 @@ interface ViewerState {
 
 export const useViewerStore = create<ViewerState>((set) => ({
   renderMode: 'pbr',
+  lightingMode: 'studio',
+  environmentMode: 'studio',
   backgroundColor: '#1e2125',
   cameraMode: 'perspective',
   upAxis: 'Y',
@@ -44,6 +50,8 @@ export const useViewerStore = create<ViewerState>((set) => ({
   fps: 0,
   runtimeInfo: null,
   setRenderMode: (renderMode) => set({ renderMode }),
+  setLightingMode: (lightingMode) => set({ lightingMode }),
+  setEnvironmentMode: (environmentMode) => set({ environmentMode }),
   setBackgroundColor: (backgroundColor) => set({ backgroundColor }),
   setCameraMode: (cameraMode) => set({ cameraMode }),
   setUpAxis: (upAxis) => set({ upAxis }),

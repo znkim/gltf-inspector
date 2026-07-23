@@ -144,3 +144,7 @@ export type RenderMode =
   | 'uv-checker'
   | 'material-id'
   | 'node-id';
+
+export type LightingMode = 'studio' | 'neutral' | 'bright' | 'flat' | 'none';
+
+export type EnvironmentMode = 'none' | 'studio' | 'day' | 'sunset' | 'night';
