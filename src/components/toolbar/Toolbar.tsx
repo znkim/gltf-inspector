@@ -1,17 +1,19 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AssetBundle } from '../../loaders/AssetBundle';
 import { loadGltfAsset } from '../../loaders/GltfAssetLoader';
 import { useAssetStore } from '../../state/assetStore';
 import { useSelectionStore } from '../../state/selectionStore';
 import { useViewerStore } from '../../state/viewerStore';
 import { getActiveController, getActiveRenderer } from '../layout/viewportController';
-import type { EnvironmentMode, LightingMode, RenderMode } from '../../types/gltf';
+import type { EnvironmentMode, LightingMode, RenderMode, RenderStateOverrideMode } from '../../types/gltf';
 import { downloadInspectionReport } from '../../inspection/ReportExporter';
 
 const logoUrl = `${import.meta.env.BASE_URL}favicon.svg`;
 
 export function Toolbar() {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const settingsRef = useRef<HTMLDivElement | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const asset = useAssetStore((state) => state.asset);
   const loading = useAssetStore((state) => state.loading);
   const clearAsset = useAssetStore((state) => state.clearAsset);
@@ -25,6 +27,8 @@ export function Toolbar() {
   const setSelectedNodeIndex = useSelectionStore((state) => state.setSelectedNodeIndex);
   const renderMode = useViewerStore((state) => state.renderMode);
   const setRenderMode = useViewerStore((state) => state.setRenderMode);
+  const renderStateOverrides = useViewerStore((state) => state.renderStateOverrides);
+  const setRenderStateOverride = useViewerStore((state) => state.setRenderStateOverride);
   const lightingMode = useViewerStore((state) => state.lightingMode);
   const setLightingMode = useViewerStore((state) => state.setLightingMode);
   const environmentMode = useViewerStore((state) => state.environmentMode);
@@ -37,6 +41,29 @@ export function Toolbar() {
   const setAutoOrbit = useViewerStore((state) => state.setAutoOrbit);
   const displayRecenter = useViewerStore((state) => state.displayRecenter);
   const setDisplayRecenter = useViewerStore((state) => state.setDisplayRecenter);
+  const hasRenderStateOverride = Object.values(renderStateOverrides).some((value) => value !== 'default');
+
+  useEffect(() => {
+    if (!settingsOpen) {
+      return undefined;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (!settingsRef.current?.contains(event.target as Node)) {
+        setSettingsOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSettingsOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [settingsOpen]);
 
   const openFiles = async (files: FileList | null) => {
     if (loading || !files || files.length === 0) {
@@ -130,6 +157,8 @@ export function Toolbar() {
           <optgroup label="Normals">
             <option value="eye-normal">Eye Normal</option>
             <option value="world-normal">World Normal</option>
+            <option value="eye-normal-map">Eye Normal + Map</option>
+            <option value="world-normal-map">World Normal + Map</option>
             <option value="normal-texture">Normal Texture</option>
           </optgroup>
           <optgroup label="UV">
@@ -191,10 +220,97 @@ export function Toolbar() {
       >
         <ToolbarIcon name="orbit" />
       </button>
+      <div className="toolbar-popover-host" ref={settingsRef}>
+        <button
+          className={settingsOpen || hasRenderStateOverride ? 'toolbar-icon-toggle active' : 'toolbar-icon-toggle'}
+          onClick={() => setSettingsOpen((open) => !open)}
+          title="Render State Settings"
+          aria-label="Render State Settings"
+          aria-expanded={settingsOpen}
+        >
+          <ToolbarIcon name="settings" />
+        </button>
+        {settingsOpen && (
+          <div className="toolbar-popover" role="dialog" aria-label="Render State Settings">
+            <div className="toolbar-popover-header">
+              <strong>Render State</strong>
+              <button className="toolbar-popover-close" onClick={() => setSettingsOpen(false)} title="Close" aria-label="Close">
+                <ToolbarIcon name="close" />
+              </button>
+            </div>
+            <RenderStateSelect
+              label="Face Side"
+              title="Face Side Override"
+              value={renderStateOverrides.doubleSided}
+              onChange={(value) => setRenderStateOverride('doubleSided', value)}
+              options={[
+                ['default', 'Default'],
+                ['enabled', 'Double Side'],
+                ['disabled', 'Front Side']
+              ]}
+            />
+            <RenderStateSelect
+              label="Depth Test"
+              title="Depth Test Override"
+              value={renderStateOverrides.depthTest}
+              onChange={(value) => setRenderStateOverride('depthTest', value)}
+              options={[
+                ['default', 'Default'],
+                ['enabled', 'On'],
+                ['disabled', 'Off']
+              ]}
+            />
+            <RenderStateSelect
+              label="Depth Write"
+              title="Depth Write Override"
+              value={renderStateOverrides.depthWrite}
+              onChange={(value) => setRenderStateOverride('depthWrite', value)}
+              options={[
+                ['default', 'Default'],
+                ['enabled', 'On'],
+                ['disabled', 'Off']
+              ]}
+            />
+          </div>
+        )}
+      </div>
       <div className="toolbar-spacer" />
       <button className="toolbar-button" disabled={!asset || loading} onClick={() => getActiveController()?.screenshot()}><ToolbarIcon name="camera" /> Screenshot</button>
       <button className="toolbar-button" disabled={!asset || loading} onClick={() => asset && downloadInspectionReport(asset)}><ToolbarIcon name="download" /> Export Report</button>
     </div>
+  );
+}
+
+function RenderStateSelect({
+  label,
+  title,
+  value,
+  onChange,
+  options
+}: {
+  label: string;
+  title: string;
+  value: RenderStateOverrideMode;
+  onChange: (value: RenderStateOverrideMode) => void;
+  options: Array<[RenderStateOverrideMode, string]>;
+}) {
+  return (
+    <label className={value === 'default' ? 'toolbar-field' : 'toolbar-field active'}>
+      <span>{label}</span>
+      <select
+        className="toolbar-select mini"
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value as RenderStateOverrideMode)}
+        title={title}
+        aria-label={title}
+      >
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -213,7 +329,8 @@ type ToolbarIconName =
   | 'perspective'
   | 'orthographic'
   | 'y-up'
-  | 'z-up';
+  | 'z-up'
+  | 'settings';
 
 function ToolbarIcon({ name }: { name: ToolbarIconName }) {
   return (
@@ -229,6 +346,7 @@ function ToolbarIcon({ name }: { name: ToolbarIconName }) {
       {name === 'orbit' && <path d="M12 5.5c-3.7 0-6.7 2.3-6.7 5.1 0 1.4.8 2.7 2.1 3.6l-1.2 1.6C4.4 14.5 3.3 12.7 3.3 10.6 3.3 6.6 7.2 3.5 12 3.5h.5l-1.8-1.8L12.1.3 16.4 4.6 12.1 8.9l-1.4-1.4 2-2H12Zm5.8 1.1c1.8 1.3 2.9 3.1 2.9 5.2 0 4-3.9 7.1-8.7 7.1h-.5l1.8 1.8-1.4 1.4-4.3-4.3 4.3-4.3 1.4 1.4-2 2h.7c3.7 0 6.7-2.3 6.7-5.1 0-1.4-.8-2.7-2.1-3.6l1.2-1.6Z" />}
       {name === 'camera' && <path d="M4 7h4l1.5-2h5L16 7h4v12H4V7Zm2 2v8h12V9h-3l-1.5-2h-3L9 9H6Zm6 7a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm0-2a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />}
       {name === 'download' && <path d="M11 4h2v8.2l3.1-3.1 1.4 1.4-5.5 5.5-5.5-5.5 1.4-1.4 3.1 3.1V4ZM5 18h14v2H5v-2Z" />}
+      {name === 'settings' && <path d="M10.4 21 10 18.2a7.6 7.6 0 0 1-1.4-.6L6.3 19.3l-2-3.5 2.6-1.1a6.6 6.6 0 0 1 0-1.6L4.3 12l2-3.5 2.3 1.7c.5-.3.9-.5 1.4-.6L10.4 7h4l.4 2.7c.5.2 1 .4 1.4.6l2.3-1.7 2 3.5-2.6 1.1a6.6 6.6 0 0 1 0 1.6l2.6 1.1-2 3.5-2.3-1.7c-.5.3-.9.5-1.4.6L14.4 21h-4Zm2-5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm-.3 3h.6l.3-2.3.7-.2a5.4 5.4 0 0 0 1.8-.8l.6-.5 1.9 1.4.3-.5-2.1-.9.1-.8a5.2 5.2 0 0 0 0-2.1l-.1-.8 2.1-.9-.3-.5-1.9 1.4-.6-.5a5.4 5.4 0 0 0-1.8-.8l-.7-.2-.3-2.3h-.6L11.8 10l-.7.2a5.4 5.4 0 0 0-1.8.8l-.6.5-1.9-1.4-.3.5 2.1.9-.1.8a5.2 5.2 0 0 0 0 2.1l.1.8-2.1.9.3.5 1.9-1.4.6.5a5.4 5.4 0 0 0 1.8.8l.7.2.3 2.3Z" />}
       {name === 'perspective' && <path d="M4 5h16l-3 14H7L4 5Zm2.5 2 2.15 10h6.7L17.5 7h-11ZM10 9l2 3 2-3h2.2L12 15.2 7.8 9H10Z" />}
       {name === 'orthographic' && <path d="M5 5h14v14H5V5Zm2 2v10h10V7H7Zm2 2h6v2H9V9Zm0 4h6v2H9v-2Z" />}
       {name === 'y-up' && (

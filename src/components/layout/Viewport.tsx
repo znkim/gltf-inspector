@@ -34,6 +34,7 @@ export function Viewport() {
   const upAxis = useViewerStore((state) => state.upAxis);
   const autoOrbit = useViewerStore((state) => state.autoOrbit);
   const displayRecenter = useViewerStore((state) => state.displayRecenter);
+  const renderStateOverrides = useViewerStore((state) => state.renderStateOverrides);
   const setDisplayOffset = useViewerStore((state) => state.setDisplayOffset);
   const settings = useSettingsStore();
 
@@ -163,6 +164,10 @@ export function Viewport() {
   useEffect(() => {
     getActiveController()?.setRenderMode(renderMode);
   }, [renderMode, asset]);
+
+  useEffect(() => {
+    getActiveController()?.setRenderStateOverrides(renderStateOverrides);
+  }, [renderStateOverrides, asset]);
 
   useEffect(() => {
     getActiveController()?.setBackgroundColor(backgroundColor);

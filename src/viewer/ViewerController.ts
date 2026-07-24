@@ -1,10 +1,11 @@
 import { Box3, Vector3, type Object3D } from 'three';
-import type { EnvironmentMode, LightingMode, LoadedAsset, RenderMode } from '../types/gltf';
+import type { EnvironmentMode, LightingMode, LoadedAsset, RenderMode, RenderStateOverrides } from '../types/gltf';
 import type { PickSelection } from '../inspection/InspectionIndex';
 import { CameraController } from './CameraController';
 import { HelperManager } from './HelperManager';
 import { MaterialOverrideManager } from './MaterialOverrideManager';
 import { PickingManager, type PickPointer } from './PickingManager';
+import { RenderStateOverrideManager } from './RenderStateOverrideManager';
 import { RendererManager } from './RendererManager';
 import { useViewerStore } from '../state/viewerStore';
 
@@ -13,6 +14,7 @@ export class ViewerController {
   readonly cameraController: CameraController;
   readonly helpers: HelperManager;
   readonly materialOverrides = new MaterialOverrideManager();
+  readonly renderStateOverrides = new RenderStateOverrideManager();
   readonly picking = new PickingManager();
   private animationFrame = 0;
   private asset: LoadedAsset | null = null;
@@ -32,6 +34,7 @@ export class ViewerController {
   }
 
   setAsset(asset: LoadedAsset | null) {
+    this.renderStateOverrides.restore();
     this.materialOverrides.restore();
     if (this.asset) {
       this.rendererManager.displayRoot.remove(this.asset.originalModel);
@@ -41,12 +44,21 @@ export class ViewerController {
     if (asset) {
       this.rendererManager.displayRoot.add(asset.originalModel);
       this.cameraController.focus(asset.originalModel);
+      this.applyRenderStateOverrides();
     }
   }
 
   setRenderMode(mode: RenderMode) {
+    this.renderStateOverrides.restore();
     if (this.asset) {
       this.materialOverrides.apply(this.asset.originalModel, mode, this.asset.inspection);
+      this.applyRenderStateOverrides();
+    }
+  }
+
+  setRenderStateOverrides(overrides: RenderStateOverrides) {
+    if (this.asset) {
+      this.renderStateOverrides.apply(this.asset.originalModel, overrides);
     }
   }
 
@@ -130,6 +142,7 @@ export class ViewerController {
     this.setAsset(null);
     this.helpers.dispose();
     this.cameraController.dispose();
+    this.renderStateOverrides.dispose();
     this.materialOverrides.dispose();
     this.rendererManager.dispose();
   }
@@ -151,6 +164,10 @@ export class ViewerController {
     useViewerStore.getState().setFps((this.fpsFrames * 1000) / elapsed);
     this.fpsFrames = 0;
     this.fpsLastTime = now;
+  }
+
+  private applyRenderStateOverrides() {
+    this.renderStateOverrides.apply(this.asset?.originalModel ?? this.rendererManager.displayRoot, useViewerStore.getState().renderStateOverrides);
   }
 }
 

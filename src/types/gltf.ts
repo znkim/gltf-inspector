@@ -137,6 +137,8 @@ export type RenderMode =
   | 'triangle-color'
   | 'world-normal'
   | 'eye-normal'
+  | 'world-normal-map'
+  | 'eye-normal-map'
   | 'normal-texture'
   | 'linear-depth'
   | 'face-orientation'
@@ -148,3 +150,11 @@ export type RenderMode =
 export type LightingMode = 'studio' | 'neutral' | 'bright' | 'flat' | 'none';
 
 export type EnvironmentMode = 'none' | 'studio' | 'day' | 'sunset' | 'night';
+
+export type RenderStateOverrideMode = 'default' | 'enabled' | 'disabled';
+
+export interface RenderStateOverrides {
+  doubleSided: RenderStateOverrideMode;
+  depthTest: RenderStateOverrideMode;
+  depthWrite: RenderStateOverrideMode;
+}

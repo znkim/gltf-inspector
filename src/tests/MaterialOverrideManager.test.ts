@@ -1,4 +1,4 @@
-import { Mesh, MeshBasicMaterial, BoxGeometry } from 'three';
+import { Mesh, MeshBasicMaterial, MeshStandardMaterial, ShaderMaterial, Texture, BoxGeometry } from 'three';
 import { expect, it } from 'vitest';
 import { MaterialOverrideManager } from '../viewer/MaterialOverrideManager';
 
@@ -76,6 +76,65 @@ it('applies face orientation and uv color shader modes', () => {
   expect(Array.isArray(mesh.material)).toBe(false);
   if (!Array.isArray(mesh.material)) {
     expect(mesh.material.name).toBe('UvColorDebugMaterial');
+  }
+
+  manager.restore();
+  expect(mesh.material).toBe(original);
+});
+
+it('applies normal map adjusted world and eye normal modes', () => {
+  const original = new MeshStandardMaterial({ normalMap: new Texture() });
+  const mesh = new Mesh(new BoxGeometry(), original);
+  const manager = new MaterialOverrideManager();
+
+  manager.apply(mesh, 'world-normal-map');
+  expect(Array.isArray(mesh.material)).toBe(false);
+  if (!Array.isArray(mesh.material)) {
+    expect(mesh.material.name).toBe('WorldNormalMapDebugMaterial');
+  }
+
+  manager.apply(mesh, 'eye-normal-map');
+  expect(Array.isArray(mesh.material)).toBe(false);
+  if (!Array.isArray(mesh.material)) {
+    expect(mesh.material.name).toBe('EyeNormalMapDebugMaterial');
+  }
+
+  manager.restore();
+  expect(mesh.material).toBe(original);
+});
+
+it('preserves alpha mask inputs for normal texture debug modes', () => {
+  const original = new MeshStandardMaterial({
+    map: new Texture(),
+    normalMap: new Texture(),
+    opacity: 0.4,
+    transparent: true,
+    alphaTest: 0.5
+  });
+  const mesh = new Mesh(new BoxGeometry(), original);
+  const manager = new MaterialOverrideManager();
+
+  manager.apply(mesh, 'normal-texture');
+  expect(Array.isArray(mesh.material)).toBe(false);
+  if (!Array.isArray(mesh.material)) {
+    expect(mesh.material.name).toBe('NormalTextureDebugMaterial');
+    expect(mesh.material.transparent).toBe(true);
+    expect(mesh.material.alphaTest).toBe(0.5);
+    expect(mesh.material).toBeInstanceOf(ShaderMaterial);
+    const debugMaterial = mesh.material as unknown as ShaderMaterial;
+    expect(debugMaterial.uniforms.opacity.value).toBe(0.4);
+    expect(debugMaterial.uniforms.hasBaseColorMap.value).toBe(true);
+  }
+
+  manager.apply(mesh, 'world-normal-map');
+  expect(Array.isArray(mesh.material)).toBe(false);
+  if (!Array.isArray(mesh.material)) {
+    expect(mesh.material.name).toBe('WorldNormalMapDebugMaterial');
+    expect(mesh.material.transparent).toBe(true);
+    expect(mesh.material.alphaTest).toBe(0.5);
+    expect(mesh.material).toBeInstanceOf(ShaderMaterial);
+    const debugMaterial = mesh.material as unknown as ShaderMaterial;
+    expect(debugMaterial.uniforms.hasBaseColorMap.value).toBe(true);
   }
 
   manager.restore();

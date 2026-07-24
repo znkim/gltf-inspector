@@ -1,7 +1,12 @@
 import { Color, DoubleSide, Mesh, MeshBasicMaterial, type BufferGeometry, type Material, type Object3D } from 'three';
 import type { RenderMode } from '../types/gltf';
 import { createLinearDepthMaterial } from '../debug-materials/DepthDebugMaterial';
-import { createEyeNormalMaterial, createWorldNormalMaterial } from '../debug-materials/NormalDebugMaterial';
+import {
+  createEyeNormalMapMaterial,
+  createEyeNormalMaterial,
+  createWorldNormalMapMaterial,
+  createWorldNormalMaterial
+} from '../debug-materials/NormalDebugMaterial';
 import { createUvCheckerMaterial } from '../debug-materials/UvDebugMaterial';
 import { createVertexColorMaterial } from '../debug-materials/VertexColorDebugMaterial';
 import { createIdMaterial } from '../debug-materials/IdDebugMaterial';
@@ -30,7 +35,7 @@ export class MaterialOverrideManager {
       return;
     }
     const override = this.createOverride(mode);
-    if (!override && !['base-color', 'unlit', 'normal-texture', 'wireframe-white', 'wireframe-overlay', 'triangle-color'].includes(mode)) {
+    if (!override && !['base-color', 'unlit', 'normal-texture', 'world-normal-map', 'eye-normal-map', 'wireframe-white', 'wireframe-overlay', 'triangle-color'].includes(mode)) {
       return;
     }
     if (override) {
@@ -62,11 +67,11 @@ export class MaterialOverrideManager {
         this.owned.push(overlayMaterial);
         this.overlays.push(overlay);
         target.add(overlay);
-      } else if (mode === 'world-normal' && !target.geometry?.attributes?.normal) {
+      } else if ((mode === 'world-normal' || mode === 'world-normal-map') && !target.geometry?.attributes?.normal) {
         const noNormal = new MeshBasicMaterial({ color: 0x8a4f4f });
         this.owned.push(noNormal);
         target.material = noNormal;
-      } else if (mode === 'eye-normal' && !target.geometry?.attributes?.normal) {
+      } else if ((mode === 'eye-normal' || mode === 'eye-normal-map') && !target.geometry?.attributes?.normal) {
         const noNormal = new MeshBasicMaterial({ color: 0x8a4f4f });
         this.owned.push(noNormal);
         target.material = noNormal;
@@ -96,6 +101,22 @@ export class MaterialOverrideManager {
         target.material = material;
       } else if (mode === 'normal-texture') {
         const material = createNormalTextureMaterial(target.material);
+        if (Array.isArray(material)) {
+          material.forEach((entry) => this.owned.push(entry));
+        } else {
+          this.owned.push(material);
+        }
+        target.material = material;
+      } else if (mode === 'world-normal-map') {
+        const material = createWorldNormalMapMaterial(target.material);
+        if (Array.isArray(material)) {
+          material.forEach((entry) => this.owned.push(entry));
+        } else {
+          this.owned.push(material);
+        }
+        target.material = material;
+      } else if (mode === 'eye-normal-map') {
+        const material = createEyeNormalMapMaterial(target.material);
         if (Array.isArray(material)) {
           material.forEach((entry) => this.owned.push(entry));
         } else {

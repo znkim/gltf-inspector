@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { EnvironmentMode, LightingMode, RenderMode } from '../types/gltf';
+import type { EnvironmentMode, LightingMode, RenderMode, RenderStateOverrideMode, RenderStateOverrides } from '../types/gltf';
 
 export interface RuntimeInfo {
   webglVersion: string;
@@ -21,6 +21,7 @@ interface ViewerState {
   upAxis: 'Y' | 'Z';
   autoOrbit: boolean;
   displayRecenter: boolean;
+  renderStateOverrides: RenderStateOverrides;
   displayOffset: number[];
   fps: number;
   runtimeInfo: RuntimeInfo | null;
@@ -32,6 +33,7 @@ interface ViewerState {
   setUpAxis: (axis: 'Y' | 'Z') => void;
   setAutoOrbit: (value: boolean) => void;
   setDisplayRecenter: (value: boolean) => void;
+  setRenderStateOverride: (key: keyof RenderStateOverrides, value: RenderStateOverrideMode) => void;
   setDisplayOffset: (offset: number[]) => void;
   setFps: (fps: number) => void;
   setRuntimeInfo: (info: RuntimeInfo) => void;
@@ -46,6 +48,11 @@ export const useViewerStore = create<ViewerState>((set) => ({
   upAxis: 'Y',
   autoOrbit: false,
   displayRecenter: false,
+  renderStateOverrides: {
+    doubleSided: 'default',
+    depthTest: 'default',
+    depthWrite: 'default'
+  },
   displayOffset: [0, 0, 0],
   fps: 0,
   runtimeInfo: null,
@@ -57,6 +64,13 @@ export const useViewerStore = create<ViewerState>((set) => ({
   setUpAxis: (upAxis) => set({ upAxis }),
   setAutoOrbit: (autoOrbit) => set({ autoOrbit }),
   setDisplayRecenter: (displayRecenter) => set({ displayRecenter }),
+  setRenderStateOverride: (key, value) =>
+    set((state) => ({
+      renderStateOverrides: {
+        ...state.renderStateOverrides,
+        [key]: value
+      }
+    })),
   setDisplayOffset: (displayOffset) => set({ displayOffset }),
   setFps: (fps) => set({ fps }),
   setRuntimeInfo: (runtimeInfo) => set({ runtimeInfo })
