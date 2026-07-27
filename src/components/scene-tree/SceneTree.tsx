@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAssetStore } from '../../state/assetStore';
+import { useNavigationStore } from '../../state/navigationStore';
 import { useSelectionStore, type MeshSelection, type PrimitiveSelection } from '../../state/selectionStore';
 import { getActiveController } from '../layout/viewportController';
 import { RawJsonContent } from '../raw-json/RawJsonPanel';
@@ -13,12 +14,14 @@ interface TreeRow {
   nodeIndex?: number;
   meshIndex?: number;
   primitiveIndex?: number;
+  parentKey?: string;
 }
 
 const MAX_ROWS = 2000;
 
 export function SceneTree() {
-  const [tab, setTab] = useState<'scene' | 'raw'>('scene');
+  const tab = useNavigationStore((state) => state.explorerTab);
+  const setTab = useNavigationStore((state) => state.setExplorerTab);
   const asset = useAssetStore((state) => state.asset);
   const selectedScene = useSelectionStore((state) => state.selectedScene);
   const selectedNodeIndex = useSelectionStore((state) => state.selectedNodeIndex);
@@ -30,8 +33,15 @@ export function SceneTree() {
   const setSelectedPrimitive = useSelectionStore((state) => state.setSelectedPrimitive);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [hiddenPrimitives, setHiddenPrimitives] = useState<Set<string>>(() => new Set());
-  const rows = useMemo(() => (asset ? buildRows(asset.source.nodes, asset.source.meshes, collapsed) : []), [asset, collapsed]);
+  const [search, setSearch] = useState('');
   const allRows = useMemo(() => (asset ? buildRows(asset.source.nodes, asset.source.meshes, new Set()) : []), [asset]);
+  const rows = useMemo(() => {
+    if (!asset) {
+      return [];
+    }
+    const query = search.trim().toLowerCase();
+    return query ? filterRows(allRows, query) : buildRows(asset.source.nodes, asset.source.meshes, collapsed);
+  }, [allRows, asset, collapsed, search]);
   const collapsibleKeys = useMemo(() => allRows.filter((row) => row.collapsible).map((row) => row.key), [allRows]);
   const primitiveRows = useMemo(() => allRows.filter((row) => row.kind === 'Primitive'), [allRows]);
 
@@ -106,6 +116,7 @@ export function SceneTree() {
       {tab === 'scene' && (
       <>
         <div className="panel-subheader tree-actions-row">
+          <input className="search-input tree-search-input" placeholder="Search scene" value={search} onChange={(event) => setSearch(event.currentTarget.value)} />
           <IconActionButton disabled={!asset} label="Expand All" icon="expand" onClick={() => setCollapsed(new Set())} />
           <IconActionButton disabled={!asset} label="Collapse All" icon="collapse" onClick={() => setCollapsed(new Set(collapsibleKeys))} />
           <IconActionButton disabled={!asset} label="Show All" icon="show" onClick={() => setAllPrimitivesVisible(true)} />
@@ -176,6 +187,8 @@ export function SceneTree() {
             )}
           </div>
         ))}
+        {asset && rows.length === 0 && <div className="panel-body">No scene rows match.</div>}
+        {rows.length > MAX_ROWS && <div className="panel-body tree-kind">Showing first {MAX_ROWS} of {rows.length} rows.</div>}
       </div>
       </>
       )}
@@ -225,7 +238,7 @@ function buildRows(
   const rows: TreeRow[] = [{ key: 'scene-0', kind: 'Scene', label: 'Scene 0', depth: 0, collapsible: roots.length > 0 }];
   if (!collapsed.has('scene-0')) {
     for (const root of roots) {
-      appendNodeRows(rows, nodes, meshes, root, 1, collapsed);
+    appendNodeRows(rows, nodes, meshes, root, 1, collapsed, 'scene-0');
     }
   }
   return rows;
@@ -237,7 +250,8 @@ function appendNodeRows(
   meshes: Array<{ name?: string; primitives?: unknown[] }>,
   nodeIndex: number,
   depth: number,
-  collapsed: Set<string>
+  collapsed: Set<string>,
+  parentKey: string
 ) {
   const node = nodes[nodeIndex];
   if (!node) {
@@ -246,7 +260,7 @@ function appendNodeRows(
   const key = `node-${nodeIndex}`;
   const hasMesh = node.mesh !== undefined;
   const hasChildren = (node.children?.length ?? 0) > 0;
-  rows.push({ key, kind: 'Node', label: node.name ?? `Node ${nodeIndex}`, depth, nodeIndex, collapsible: hasMesh || hasChildren });
+  rows.push({ key, kind: 'Node', label: node.name ?? `Node ${nodeIndex}`, depth, nodeIndex, parentKey, collapsible: hasMesh || hasChildren });
   if (collapsed.has(key)) {
     return;
   }
@@ -261,6 +275,7 @@ function appendNodeRows(
       depth: depth + 1,
       nodeIndex,
       meshIndex: node.mesh,
+      parentKey: key,
       collapsible: (mesh?.primitives?.length ?? 0) > 0
     });
     if (!collapsed.has(meshKey)) {
@@ -273,6 +288,7 @@ function appendNodeRows(
           nodeIndex,
           meshIndex: node.mesh,
           primitiveIndex,
+          parentKey: meshKey,
           collapsible: false
         });
       });
@@ -280,8 +296,25 @@ function appendNodeRows(
   }
 
   for (const child of node.children ?? []) {
-    appendNodeRows(rows, nodes, meshes, child, depth + 1, collapsed);
+    appendNodeRows(rows, nodes, meshes, child, depth + 1, collapsed, key);
   }
+}
+
+function filterRows(rows: TreeRow[], query: string): TreeRow[] {
+  const byKey = new Map(rows.map((row) => [row.key, row]));
+  const included = new Set<string>();
+  for (const row of rows) {
+    const haystack = `${row.kind} ${row.label} ${row.nodeIndex ?? ''} ${row.meshIndex ?? ''} ${row.primitiveIndex ?? ''}`.toLowerCase();
+    if (!haystack.includes(query)) {
+      continue;
+    }
+    let current: TreeRow | undefined = row;
+    while (current) {
+      included.add(current.key);
+      current = current.parentKey ? byKey.get(current.parentKey) : undefined;
+    }
+  }
+  return rows.filter((row) => included.has(row.key));
 }
 
 function isSelected(

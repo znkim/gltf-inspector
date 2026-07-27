@@ -165,11 +165,12 @@ function UvMapCanvas({
   }, [previewUrl, setImageSize, triangles]);
 
   return (
-    <div
-      className={`uv-map-preview ${large ? 'large' : ''}`}
-      style={imageSize ? { aspectRatio: `${imageSize.width} / ${imageSize.height}` } : undefined}
-    >
-      <canvas ref={canvasRef} aria-label={`Texture ${textureIndex} UV map`} />
+    <div className={`uv-map-preview ${large ? 'large' : ''}`}>
+      <canvas
+        ref={canvasRef}
+        aria-label={`Texture ${textureIndex} UV map`}
+        style={imageSize ? { aspectRatio: `${imageSize.width} / ${imageSize.height}` } : undefined}
+      />
     </div>
   );
 }

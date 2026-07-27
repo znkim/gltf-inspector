@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 export interface WarningThresholds {
   largeCoordinate: number;
@@ -17,9 +18,10 @@ interface SettingsState {
   setShowNodeAxes: (value: boolean) => void;
   setShowGeometryLocalBox: (value: boolean) => void;
   setShowWorldAabb: (value: boolean) => void;
+  resetSettings: () => void;
 }
 
-export const useSettingsStore = create<SettingsState>((set) => ({
+const DEFAULT_SETTINGS = {
   thresholds: {
     largeCoordinate: 100000,
     translationToSizeRatio: 100
@@ -28,10 +30,38 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   showWorldAxes: true,
   showNodeAxes: true,
   showGeometryLocalBox: true,
-  showWorldAabb: true,
-  setShowGrid: (showGrid) => set({ showGrid }),
-  setShowWorldAxes: (showWorldAxes) => set({ showWorldAxes }),
-  setShowNodeAxes: (showNodeAxes) => set({ showNodeAxes }),
-  setShowGeometryLocalBox: (showGeometryLocalBox) => set({ showGeometryLocalBox }),
-  setShowWorldAabb: (showWorldAabb) => set({ showWorldAabb })
-}));
+  showWorldAabb: true
+} satisfies Pick<
+  SettingsState,
+  'thresholds' | 'showGrid' | 'showWorldAxes' | 'showNodeAxes' | 'showGeometryLocalBox' | 'showWorldAabb'
+>;
+
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set) => ({
+      ...DEFAULT_SETTINGS,
+      setShowGrid: (showGrid) => set({ showGrid }),
+      setShowWorldAxes: (showWorldAxes) => set({ showWorldAxes }),
+      setShowNodeAxes: (showNodeAxes) => set({ showNodeAxes }),
+      setShowGeometryLocalBox: (showGeometryLocalBox) => set({ showGeometryLocalBox }),
+      setShowWorldAabb: (showWorldAabb) => set({ showWorldAabb }),
+      resetSettings: () =>
+        set({
+          ...DEFAULT_SETTINGS,
+          thresholds: { ...DEFAULT_SETTINGS.thresholds }
+        })
+    }),
+    {
+      name: 'gltf-inspector-settings-v1',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        thresholds: state.thresholds,
+        showGrid: state.showGrid,
+        showWorldAxes: state.showWorldAxes,
+        showNodeAxes: state.showNodeAxes,
+        showGeometryLocalBox: state.showGeometryLocalBox,
+        showWorldAabb: state.showWorldAabb
+      })
+    }
+  )
+);

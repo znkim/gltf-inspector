@@ -150,7 +150,7 @@ export class ViewerController {
   private readonly animate = () => {
     this.animationFrame = requestAnimationFrame(this.animate);
     this.cameraController.update();
-    this.rendererManager.renderer.render(this.rendererManager.scene, this.cameraController.active);
+    this.rendererManager.render(this.cameraController.active);
     this.updateFps();
   };
 
