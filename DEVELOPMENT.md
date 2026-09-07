@@ -18,7 +18,7 @@ npm run build
 
 ## GitHub Pages
 
-This repository is prepared for GitHub Pages deployment from the `docs/` directory.
+This repository deploys the `docs/` build output to GitHub Pages with GitHub Actions.
 
 Published URL:
 
@@ -29,17 +29,16 @@ https://znkim.github.io/gltf-inspector/
 GitHub Pages settings:
 
 1. Open `Settings -> Pages`.
-2. Set `Build and deployment -> Source` to `Deploy from a branch`.
-3. Select `develop` and `/docs`.
+2. Set `Build and deployment -> Source` to `GitHub Actions`.
 
-Build and commit the Pages output:
+Build the Pages output locally:
 
 ```bash
 npm run build:pages
 git add docs
-git commit -m "Build GitHub Pages site"
-git push
 ```
+
+The `Deploy GitHub Pages` workflow builds and deploys the site whenever `main` is updated. It can also be run manually.
 
 The Pages base path is configured as:
 

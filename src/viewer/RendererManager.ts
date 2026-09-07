@@ -10,10 +10,10 @@ import {
   PMREMGenerator,
   Scene,
   SRGBColorSpace,
-  Texture,
   Vector3,
   WebGLRenderer
 } from 'three';
+import type { Texture } from 'three';
 import type { EnvironmentMode, LightingMode } from '../types/gltf';
 
 export class RendererManager {
