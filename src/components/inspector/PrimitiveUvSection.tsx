@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react';
 import type { LoadedAsset } from '../../types/gltf';
 import type { PrimitiveSelection } from '../../state/selectionStore';
 import {
@@ -85,15 +85,17 @@ function UvTexturePreview({ asset, mapping }: { asset: LoadedAsset; mapping: Tex
           </label>
         </div>
       )}
-      <button className="uv-map-preview-button" onClick={() => setExpanded(true)}>
-        <UvMapCanvas
-          previewUrl={preview.url}
-          textureIndex={mapping.textureIndex}
-          triangles={visibleTriangles}
-          imageSize={imageSize}
-          setImageSize={setImageSize}
-        />
-      </button>
+      <div className="uv-map-toolbar">
+        <span>Wheel to zoom · drag to pan</span>
+        <button type="button" onClick={() => setExpanded(true)}>Expand</button>
+      </div>
+      <UvMapCanvas
+        previewUrl={preview.url}
+        textureIndex={mapping.textureIndex}
+        triangles={visibleTriangles}
+        imageSize={imageSize}
+        setImageSize={setImageSize}
+      />
       <figcaption className="tree-kind">
         {preview.label} - {visibleTriangles.length} / {mapping.triangles.length} triangles shown
       </figcaption>
@@ -108,13 +110,16 @@ function UvTexturePreview({ asset, mapping }: { asset: LoadedAsset; mapping: Tex
               setImageSize={setImageSize}
               large
             />
-            <div className="texture-modal-caption">Texture {mapping.textureIndex} {mapping.slot}</div>
+            <div className="texture-modal-caption">Texture {mapping.textureIndex} {mapping.slot} · wheel to zoom · drag to pan</div>
           </div>
         </div>
       )}
     </figure>
   );
 }
+
+type UvView = { zoom: number; x: number; y: number };
+const DEFAULT_UV_VIEW: UvView = { zoom: 1, x: 0, y: 0 };
 
 function UvMapCanvas({
   previewUrl,
@@ -132,83 +137,162 @@ function UvMapCanvas({
   large?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const dragRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [view, setView] = useState<UvView>(DEFAULT_UV_VIEW);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return undefined;
-    }
     let cancelled = false;
-    const image = new Image();
-    image.onload = () => {
+    const nextImage = new Image();
+    nextImage.onload = () => {
       if (cancelled) {
         return;
       }
-      const width = image.naturalWidth || image.width || 1;
-      const height = image.naturalHeight || image.height || 1;
-      canvas.width = width;
-      canvas.height = height;
+      const width = nextImage.naturalWidth || nextImage.width || 1;
+      const height = nextImage.naturalHeight || nextImage.height || 1;
       setImageSize({ width, height });
-      const context = canvas.getContext('2d');
-      if (!context) {
-        return;
-      }
-      context.clearRect(0, 0, width, height);
-      context.imageSmoothingEnabled = false;
-      context.drawImage(image, 0, 0, width, height);
-      drawUvTriangles(context, triangles, width, height);
+      setImage(nextImage);
+      setView(DEFAULT_UV_VIEW);
     };
-    image.src = previewUrl;
+    nextImage.src = previewUrl;
     return () => {
       cancelled = true;
     };
-  }, [previewUrl, setImageSize, triangles]);
+  }, [previewUrl, setImageSize]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !image) {
+      return undefined;
+    }
+    const render = () => drawUvMap(canvas, image, triangles, view);
+    const observer = new ResizeObserver(render);
+    observer.observe(canvas);
+    render();
+    return () => observer.disconnect();
+  }, [image, triangles, view]);
+
+  const zoom = (event: ReactWheelEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const pointerX = event.clientX - rect.left - rect.width / 2;
+    const pointerY = event.clientY - rect.top - rect.height / 2;
+    const factor = Math.exp(-event.deltaY * 0.0015);
+    setView((current) => {
+      const nextZoom = Math.min(16, Math.max(0.5, current.zoom * factor));
+      const ratio = nextZoom / current.zoom;
+      return {
+        zoom: nextZoom,
+        x: pointerX - (pointerX - current.x) * ratio,
+        y: pointerY - (pointerY - current.y) * ratio
+      };
+    });
+  };
+
+  const startPan = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const pan = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) {
+      return;
+    }
+    const deltaX = event.clientX - drag.x;
+    const deltaY = event.clientY - drag.y;
+    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    setView((current) => ({ ...current, x: current.x + deltaX, y: current.y + deltaY }));
+  };
+
+  const stopPan = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (dragRef.current?.pointerId === event.pointerId) {
+      dragRef.current = null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    }
+  };
 
   return (
-    <div className={`uv-map-preview ${large ? 'large' : ''}`}>
+    <div
+      className={`uv-map-preview ${large ? 'large' : ''}`}
+      style={imageSize ? { aspectRatio: `${imageSize.width} / ${imageSize.height}` } : undefined}
+    >
       <canvas
         ref={canvasRef}
         aria-label={`Texture ${textureIndex} UV map`}
-        style={imageSize ? { aspectRatio: `${imageSize.width} / ${imageSize.height}` } : undefined}
+        onWheel={zoom}
+        onPointerDown={startPan}
+        onPointerMove={pan}
+        onPointerUp={stopPan}
+        onPointerCancel={stopPan}
       />
+      <button className="uv-map-reset" type="button" onClick={() => setView(DEFAULT_UV_VIEW)}>Reset</button>
+      <span className="uv-map-zoom">{Math.round(view.zoom * 100)}%</span>
     </div>
   );
 }
 
-function drawUvTriangles(context: CanvasRenderingContext2D, triangles: UvTriangle[], width: number, height: number) {
+function drawUvMap(canvas: HTMLCanvasElement, image: HTMLImageElement, triangles: UvTriangle[], view: UvView) {
+  const cssWidth = Math.max(1, canvas.clientWidth);
+  const cssHeight = Math.max(1, canvas.clientHeight);
+  const pixelRatio = window.devicePixelRatio || 1;
+  const width = Math.max(1, image.naturalWidth || image.width);
+  const height = Math.max(1, image.naturalHeight || image.height);
+  const renderWidth = Math.round(cssWidth * pixelRatio);
+  const renderHeight = Math.round(cssHeight * pixelRatio);
+  if (canvas.width !== renderWidth || canvas.height !== renderHeight) {
+    canvas.width = renderWidth;
+    canvas.height = renderHeight;
+  }
+  const context = canvas.getContext('2d');
+  if (!context) {
+    return;
+  }
+  context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  context.clearRect(0, 0, cssWidth, cssHeight);
+  const fitScale = Math.min(cssWidth / width, cssHeight / height);
+  const scale = fitScale * view.zoom;
+  const originX = cssWidth / 2 - width * scale / 2 + view.x;
+  const originY = cssHeight / 2 - height * scale / 2 + view.y;
+  context.imageSmoothingEnabled = false;
+  context.drawImage(image, originX, originY, width * scale, height * scale);
+  drawUvTriangles(context, triangles, width, height, originX, originY, scale);
+}
+
+function drawUvTriangles(
+  context: CanvasRenderingContext2D,
+  triangles: UvTriangle[],
+  width: number,
+  height: number,
+  originX: number,
+  originY: number,
+  scale: number
+) {
   context.save();
   context.lineJoin = 'round';
   context.lineCap = 'round';
   context.lineWidth = 1;
   context.strokeStyle = '#f7b267';
   context.fillStyle = 'rgba(247, 178, 103, 0.1)';
-  context.shadowColor = '#8f5a20';
-  context.shadowBlur = 0;
-  context.shadowOffsetX = 0.5;
-  context.shadowOffsetY = 0.5;
   for (const triangle of triangles) {
     const [first, second, third] = triangle.points;
     context.beginPath();
-    context.moveTo(wrap01(first.u) * width, wrap01(first.v) * height);
-    context.lineTo(wrap01(second.u) * width, wrap01(second.v) * height);
-    context.lineTo(wrap01(third.u) * width, wrap01(third.v) * height);
+    context.moveTo(originX + wrap01(first.u) * width * scale, originY + wrap01(first.v) * height * scale);
+    context.lineTo(originX + wrap01(second.u) * width * scale, originY + wrap01(second.v) * height * scale);
+    context.lineTo(originX + wrap01(third.u) * width * scale, originY + wrap01(third.v) * height * scale);
     context.closePath();
     context.fill();
     context.stroke();
   }
-  context.lineWidth = 1;
-  context.strokeStyle = '#8f5a20';
   context.fillStyle = '#f7b267';
-  context.shadowColor = 'transparent';
-  context.shadowOffsetX = 0;
-  context.shadowOffsetY = 0;
-  const radius = Math.max(1, Math.min(width, height) * 0.0028);
+  const radius = 1;
   for (const triangle of triangles) {
     for (const point of triangle.points) {
       context.beginPath();
-      context.arc(wrap01(point.u) * width, wrap01(point.v) * height, radius, 0, Math.PI * 2);
+      context.arc(originX + wrap01(point.u) * width * scale, originY + wrap01(point.v) * height * scale, radius, 0, Math.PI * 2);
       context.fill();
-      context.stroke();
     }
   }
   context.restore();

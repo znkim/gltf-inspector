@@ -1523,18 +1523,26 @@ button:disabled {
   margin: 6px 0 0;
 }
 
-.uv-map-preview-button {
-  display: block;
-  width: max-content;
-  max-width: 100%;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
+.uv-map-toolbar {
+  width: min(100%, 260px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: #98a3ad;
+  font-size: 11px;
 }
 
-.uv-map-preview-button:hover {
-  background: transparent;
+.uv-map-toolbar button,
+.uv-map-reset {
+  min-height: 24px;
+  padding: 2px 7px;
+  border: 1px solid #46515c;
+  border-radius: 4px;
+  background: rgba(16, 20, 24, 0.88);
+  color: #dce3e8;
+  cursor: pointer;
 }
 
 .uv-map-preview {
@@ -1558,6 +1566,33 @@ button:disabled {
   display: block;
   image-rendering: pixelated;
   background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.uv-map-preview canvas:active {
+  cursor: grabbing;
+}
+
+.uv-map-reset,
+.uv-map-zoom {
+  position: absolute;
+  top: 6px;
+  z-index: 1;
+}
+
+.uv-map-reset {
+  right: 6px;
+}
+
+.uv-map-zoom {
+  left: 6px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(11, 13, 15, 0.78);
+  color: #dce3e8;
+  font: 11px/18px ui-monospace, SFMono-Regular, Consolas, monospace;
+  pointer-events: none;
 }
 
 .uv-map-preview.large canvas {
