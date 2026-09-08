@@ -8,16 +8,18 @@ import { IssuesPanel } from '../components/issues/IssuesPanel';
 import { PerformancePanel } from '../components/performance/PerformancePanel';
 import { Viewport } from '../components/layout/Viewport';
 import { DropOverlay } from '../components/layout/DropOverlay';
+import { useNavigationStore } from '../state/navigationStore';
 
 export function App() {
   const [aboutOpen, setAboutOpen] = useState(false);
+  const layoutResetNonce = useNavigationStore((state) => state.layoutResetNonce);
   return (
     <div className="app">
       <Toolbar />
       <DropOverlay />
-      <PanelGroup direction="vertical" className="workspace">
+      <PanelGroup key={layoutResetNonce} direction="vertical" className="workspace" autoSaveId="gltf-inspector-workspace-v1">
         <Panel defaultSize={76} minSize={45}>
-          <PanelGroup direction="horizontal">
+          <PanelGroup direction="horizontal" autoSaveId="gltf-inspector-main-v1">
             <Panel defaultSize={22} minSize={14} maxSize={36}>
               <SceneTree />
             </Panel>
@@ -33,7 +35,7 @@ export function App() {
         </Panel>
         <PanelResizeHandle className="resize-handle horizontal" />
         <Panel defaultSize={24} minSize={12} maxSize={40}>
-          <PanelGroup direction="horizontal">
+          <PanelGroup direction="horizontal" autoSaveId="gltf-inspector-bottom-v1">
             <Panel defaultSize={50}>
               <IssuesPanel />
             </Panel>
@@ -47,7 +49,7 @@ export function App() {
       <footer className="app-footer">
         <span className="footer-oss">Open Source: Three.js, React, glTF-Validator, meshoptimizer, fflate, Pretendard</span>
         <span className="footer-meta">
-          <span className="footer-product">glTF Inspector v0.2.2</span>
+          <span className="footer-product">glTF Inspector v{__APP_VERSION__}</span>
           <span className="footer-product">made by znkim</span>
           <button className="footer-link-button" onClick={() => setAboutOpen(true)}>about</button>
           <a href="https://github.com/znkim/gltf-inspector" target="_blank" rel="noreferrer">github</a>

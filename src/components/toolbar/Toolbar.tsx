@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { AssetBundle } from '../../loaders/AssetBundle';
 import { loadGltfAsset } from '../../loaders/GltfAssetLoader';
 import { useAssetStore } from '../../state/assetStore';
+import { useNavigationStore } from '../../state/navigationStore';
 import { useSelectionStore } from '../../state/selectionStore';
+import { useSettingsStore } from '../../state/settingsStore';
 import { useViewerStore } from '../../state/viewerStore';
 import { getActiveController, getActiveRenderer } from '../layout/viewportController';
 import type { EnvironmentMode, LightingMode, RenderMode, RenderStateOverrideMode } from '../../types/gltf';
@@ -29,6 +31,9 @@ export function Toolbar() {
   const setRenderMode = useViewerStore((state) => state.setRenderMode);
   const renderStateOverrides = useViewerStore((state) => state.renderStateOverrides);
   const setRenderStateOverride = useViewerStore((state) => state.setRenderStateOverride);
+  const resetViewerSettings = useViewerStore((state) => state.resetViewerSettings);
+  const resetSettings = useSettingsStore((state) => state.resetSettings);
+  const resetPanelLayout = useNavigationStore((state) => state.resetPanelLayout);
   const lightingMode = useViewerStore((state) => state.lightingMode);
   const setLightingMode = useViewerStore((state) => state.setLightingMode);
   const environmentMode = useViewerStore((state) => state.environmentMode);
@@ -42,6 +47,13 @@ export function Toolbar() {
   const displayRecenter = useViewerStore((state) => state.displayRecenter);
   const setDisplayRecenter = useViewerStore((state) => state.setDisplayRecenter);
   const hasRenderStateOverride = Object.values(renderStateOverrides).some((value) => value !== 'default');
+
+  const resetAllSettings = () => {
+    resetViewerSettings();
+    resetSettings();
+    resetPanelLayout();
+    setSettingsOpen(false);
+  };
 
   useEffect(() => {
     if (!settingsOpen) {
@@ -184,6 +196,9 @@ export function Toolbar() {
           <option value="studio">Studio</option>
           <option value="neutral">Neutral</option>
           <option value="bright">Bright</option>
+          <option value="camera-flash">Camera Flash</option>
+          <option value="spotlight">Spotlight</option>
+          <option value="three-point">Three Point</option>
           <option value="flat">Flat</option>
           <option value="none">None</option>
         </select>
@@ -233,11 +248,12 @@ export function Toolbar() {
         {settingsOpen && (
           <div className="toolbar-popover" role="dialog" aria-label="Render State Settings">
             <div className="toolbar-popover-header">
-              <strong>Render State</strong>
+              <strong>Settings</strong>
               <button className="toolbar-popover-close" onClick={() => setSettingsOpen(false)} title="Close" aria-label="Close">
                 <ToolbarIcon name="close" />
               </button>
             </div>
+            <div className="toolbar-popover-section-title">Render State</div>
             <RenderStateSelect
               label="Face Side"
               title="Face Side Override"
@@ -271,6 +287,9 @@ export function Toolbar() {
                 ['disabled', 'Off']
               ]}
             />
+            <button className="toolbar-reset-button" onClick={resetAllSettings}>
+              Reset All Settings
+            </button>
           </div>
         )}
       </div>

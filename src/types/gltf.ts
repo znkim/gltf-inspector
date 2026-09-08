@@ -147,7 +147,7 @@ export type RenderMode =
   | 'material-id'
   | 'node-id';
 
-export type LightingMode = 'studio' | 'neutral' | 'bright' | 'flat' | 'none';
+export type LightingMode = 'studio' | 'neutral' | 'bright' | 'camera-flash' | 'spotlight' | 'three-point' | 'flat' | 'none';
 
 export type EnvironmentMode = 'none' | 'studio' | 'day' | 'sunset' | 'night';
 

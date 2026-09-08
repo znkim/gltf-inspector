@@ -9,11 +9,12 @@ import {
   Object3D,
   PMREMGenerator,
   Scene,
+  SpotLight,
   SRGBColorSpace,
   Vector3,
   WebGLRenderer
 } from 'three';
-import type { Texture } from 'three';
+import type { Camera, Texture } from 'three';
 import type { EnvironmentMode, LightingMode } from '../types/gltf';
 
 export class RendererManager {
@@ -23,9 +24,15 @@ export class RendererManager {
   private readonly ambientLight = new AmbientLight(0xffffff, 0);
   private readonly hemisphereLight = new HemisphereLight(0xffffff, 0x303844, 1.8);
   private readonly directionalLight = new DirectionalLight(0xffffff, 2.4);
+  private readonly fillLight = new DirectionalLight(0xd8ecff, 0);
+  private readonly rimLight = new DirectionalLight(0xfff1d6, 0);
+  private readonly cameraFlash = new SpotLight(0xffffff, 0, 0, Math.PI / 5.4, 0.48, 1);
+  private readonly cameraFlashTarget = new Object3D();
+  private readonly cameraDirection = new Vector3();
   private readonly pmremGenerator: PMREMGenerator;
   private backgroundColor = '#1e2125';
   private environmentMode: EnvironmentMode = 'none';
+  private lightingMode: LightingMode = 'studio';
   private backgroundTexture: CubeTexture | null = null;
   private environmentTexture: Texture | null = null;
 
@@ -37,7 +44,21 @@ export class RendererManager {
     this.pmremGenerator = new PMREMGenerator(this.renderer);
     this.pmremGenerator.compileCubemapShader();
     this.directionalLight.position.set(5, 8, 6);
-    this.scene.add(this.ambientLight, this.hemisphereLight, this.directionalLight);
+    this.fillLight.position.set(-5, 3, -4);
+    this.rimLight.position.set(-4, 7, -7);
+    this.cameraFlashTarget.name = 'CameraFlashTarget';
+    this.cameraFlash.name = 'CameraFlash';
+    this.cameraFlash.castShadow = false;
+    this.cameraFlash.target = this.cameraFlashTarget;
+    this.scene.add(
+      this.ambientLight,
+      this.hemisphereLight,
+      this.directionalLight,
+      this.fillLight,
+      this.rimLight,
+      this.cameraFlash,
+      this.cameraFlashTarget
+    );
     this.scene.add(this.displayRoot);
     this.setEnvironmentMode('studio');
   }
@@ -50,9 +71,13 @@ export class RendererManager {
   }
 
   setLightingMode(mode: LightingMode) {
+    this.lightingMode = mode;
     this.ambientLight.intensity = 0;
     this.hemisphereLight.visible = true;
     this.directionalLight.visible = true;
+    this.fillLight.visible = false;
+    this.rimLight.visible = false;
+    this.cameraFlash.visible = false;
     this.directionalLight.position.set(5, 8, 6);
     if (mode === 'studio') {
       this.hemisphereLight.intensity = 1.8;
@@ -63,6 +88,29 @@ export class RendererManager {
     } else if (mode === 'bright') {
       this.hemisphereLight.intensity = 2.4;
       this.directionalLight.intensity = 3.4;
+    } else if (mode === 'camera-flash') {
+      this.hemisphereLight.intensity = 0.75;
+      this.directionalLight.intensity = 0.65;
+      this.cameraFlash.visible = true;
+      this.cameraFlash.intensity = 4.6;
+      this.cameraFlash.angle = Math.PI / 5.2;
+      this.cameraFlash.penumbra = 0.58;
+    } else if (mode === 'spotlight') {
+      this.ambientLight.intensity = 0.18;
+      this.hemisphereLight.visible = false;
+      this.directionalLight.visible = false;
+      this.cameraFlash.visible = true;
+      this.cameraFlash.intensity = 7.2;
+      this.cameraFlash.angle = Math.PI / 7.8;
+      this.cameraFlash.penumbra = 0.34;
+    } else if (mode === 'three-point') {
+      this.hemisphereLight.intensity = 0.6;
+      this.directionalLight.intensity = 2.8;
+      this.directionalLight.position.set(4, 5, 5);
+      this.fillLight.visible = true;
+      this.fillLight.intensity = 1.15;
+      this.rimLight.visible = true;
+      this.rimLight.intensity = 2.2;
     } else if (mode === 'flat') {
       this.ambientLight.intensity = 1.8;
       this.hemisphereLight.visible = false;
@@ -98,11 +146,27 @@ export class RendererManager {
     this.renderer.setSize(width, height, false);
   }
 
+  render(camera: Camera) {
+    this.updateCameraLight(camera);
+    this.renderer.render(this.scene, camera);
+  }
+
   dispose() {
     this.backgroundTexture?.dispose();
     this.environmentTexture?.dispose();
     this.pmremGenerator.dispose();
     this.renderer.dispose();
+  }
+
+  private updateCameraLight(camera: Camera) {
+    if (!this.cameraFlash.visible || (this.lightingMode !== 'camera-flash' && this.lightingMode !== 'spotlight')) {
+      return;
+    }
+    camera.updateMatrixWorld();
+    camera.getWorldPosition(this.cameraFlash.position);
+    camera.getWorldDirection(this.cameraDirection);
+    this.cameraFlashTarget.position.copy(this.cameraFlash.position).addScaledVector(this.cameraDirection, 10);
+    this.cameraFlashTarget.updateMatrixWorld();
   }
 }
 

@@ -22,6 +22,7 @@ interface SelectionStatSummary {
 export function InspectorPanel() {
   const [topTab, setTopTab] = useState<'selection' | 'asset' | 'animation'>('asset');
   const [resourceTab, setResourceTab] = useState<'materials' | 'textures' | 'uv-map'>('materials');
+  const [resourceSearch, setResourceSearch] = useState('');
   const [expandedNumbers, setExpandedNumbers] = useState(true);
   const asset = useAssetStore((state) => state.asset);
   const selectedScene = useSelectionStore((state) => state.selectedScene);
@@ -207,9 +208,15 @@ export function InspectorPanel() {
             <TabButton active={resourceTab === 'uv-map'} onClick={() => setResourceTab('uv-map')}>UV Map</TabButton>
           </div>
           <div className="panel-body inspector-content">
+            <input
+              className="search-input resource-search-input"
+              placeholder={`Search ${resourceTab}`}
+              value={resourceSearch}
+              onChange={(event) => setResourceSearch(event.currentTarget.value)}
+            />
             {!asset && <div>No asset loaded.</div>}
-            {asset && resourceTab === 'materials' && <MaterialSection asset={asset} />}
-            {asset && resourceTab === 'textures' && <TextureSection asset={asset} />}
+            {asset && resourceTab === 'materials' && <MaterialSection asset={asset} search={resourceSearch} />}
+            {asset && resourceTab === 'textures' && <TextureSection asset={asset} search={resourceSearch} />}
             {asset && resourceTab === 'uv-map' && <PrimitiveUvSection asset={asset} selectedPrimitive={selectedPrimitive} />}
           </div>
         </div>

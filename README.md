@@ -8,7 +8,7 @@ Browser-based glTF/GLB inspector for scene hierarchy, materials, textures, geome
 
 <p>
   <a href="https://znkim.github.io/gltf-inspector/">Live Demo</a>
-  ·
+  |
   <a href="DEVELOPMENT.md">Development Guide</a>
 </p>
 

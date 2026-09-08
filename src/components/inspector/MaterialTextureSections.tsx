@@ -17,14 +17,19 @@ export function ExtensionSection({ asset }: { asset: LoadedAsset }) {
   );
 }
 
-export function MaterialSection({ asset }: { asset: LoadedAsset }) {
+export function MaterialSection({ asset, search = '' }: { asset: LoadedAsset; search?: string }) {
   const usage = buildMaterialUsage(asset);
   const highlightedMaterials = useHighlightedMaterials(asset);
+  const query = search.trim().toLowerCase();
+  const materials = asset.source.materials
+    .map((material, index) => ({ material, index }))
+    .filter(({ material, index }) => !query || materialMatches(usage, material, index, query));
   return (
     <section className="section">
       <h3 className="section-title">Materials</h3>
       {asset.source.materials.length === 0 && <div className="tree-kind">No materials.</div>}
-      {asset.source.materials.map((material, index) => {
+      {asset.source.materials.length > 0 && materials.length === 0 && <div className="tree-kind">No materials match.</div>}
+      {materials.map(({ material, index }) => {
         const pbr = objectValue(material.pbrMetallicRoughness);
         const textureSlots = collectMaterialTextureSlots(material);
         const firstTexture = textureSlots[0]?.index;
@@ -63,14 +68,19 @@ export function MaterialSection({ asset }: { asset: LoadedAsset }) {
   );
 }
 
-export function TextureSection({ asset }: { asset: LoadedAsset }) {
+export function TextureSection({ asset, search = '' }: { asset: LoadedAsset; search?: string }) {
   const usage = buildTextureUsage(asset);
   const highlightedTextures = useHighlightedTextures(asset);
+  const query = search.trim().toLowerCase();
+  const textures = asset.source.textures
+    .map((texture, index) => ({ texture, index }))
+    .filter(({ texture, index }) => !query || textureMatches(asset, usage, texture, index, query));
   return (
     <section className="section">
       <h3 className="section-title">Textures</h3>
       {asset.source.textures.length === 0 && <div className="tree-kind">No textures.</div>}
-      {asset.source.textures.map((texture, index) => {
+      {asset.source.textures.length > 0 && textures.length === 0 && <div className="tree-kind">No textures match.</div>}
+      {textures.map(({ texture, index }) => {
         const textureObject = objectValue(texture);
         const imageIndex = getTextureImageIndex(textureObject);
         const basisuImageIndex = getBasisuImageIndex(textureObject);
@@ -108,6 +118,30 @@ export function TextureSection({ asset }: { asset: LoadedAsset }) {
       })}
     </section>
   );
+}
+
+function materialMatches(usage: Map<number, string[]>, material: GltfJsonValue | undefined, index: number, query: string): boolean {
+  const text = [
+    `material ${index}`,
+    JSON.stringify(material),
+    (usage.get(index) ?? []).join(' '),
+    collectMaterialTextureSlots(material).map((slot) => `${slot.label} ${slot.index}`).join(' ')
+  ].join(' ');
+  return text.toLowerCase().includes(query);
+}
+
+function textureMatches(asset: LoadedAsset, usage: Map<number, string[]>, texture: GltfJsonValue | undefined, index: number, query: string): boolean {
+  const textureObject = objectValue(texture);
+  const imageIndex = getTextureImageIndex(textureObject);
+  const image = imageIndex !== null ? objectValue(asset.source.images[imageIndex]) : null;
+  const text = [
+    `texture ${index}`,
+    JSON.stringify(texture),
+    imageIndex !== null ? `image ${imageIndex}` : '',
+    JSON.stringify(image),
+    (usage.get(index) ?? []).join(' ')
+  ].join(' ');
+  return text.toLowerCase().includes(query);
 }
 
 function useHighlightedMaterials(asset: LoadedAsset): Set<number> {
