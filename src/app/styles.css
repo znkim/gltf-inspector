@@ -1524,7 +1524,7 @@ button:disabled {
 }
 
 .uv-map-toolbar {
-  width: min(100%, 260px);
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1547,7 +1547,7 @@ button:disabled {
 
 .uv-map-preview {
   position: relative;
-  width: min(100%, 260px);
+  width: 100%;
   border: 1px solid #343b43;
   border-radius: 4px;
   background: #0b0d0f;
