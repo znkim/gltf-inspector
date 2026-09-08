@@ -13,7 +13,8 @@ interface NavigationState {
 const PANEL_LAYOUT_STORAGE_KEYS = [
   'react-resizable-panels:gltf-inspector-workspace-v1',
   'react-resizable-panels:gltf-inspector-main-v1',
-  'react-resizable-panels:gltf-inspector-bottom-v1'
+  'react-resizable-panels:gltf-inspector-bottom-v1',
+  'react-resizable-panels:gltf-inspector-inspector-v1'
 ];
 
 export const useNavigationStore = create<NavigationState>((set) => ({
