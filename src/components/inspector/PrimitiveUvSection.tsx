@@ -85,17 +85,15 @@ function UvTexturePreview({ asset, mapping }: { asset: LoadedAsset; mapping: Tex
           </label>
         </div>
       )}
-      <div className="uv-map-toolbar">
-        <span>Wheel to zoom · drag to pan</span>
-        <button type="button" onClick={() => setExpanded(true)}>Expand</button>
-      </div>
-      <UvMapCanvas
-        previewUrl={preview.url}
-        textureIndex={mapping.textureIndex}
-        triangles={visibleTriangles}
-        imageSize={imageSize}
-        setImageSize={setImageSize}
-      />
+      <button className="uv-map-preview-button" type="button" onClick={() => setExpanded(true)} aria-label="Expand UV map">
+        <UvMapCanvas
+          previewUrl={preview.url}
+          textureIndex={mapping.textureIndex}
+          triangles={visibleTriangles}
+          imageSize={imageSize}
+          setImageSize={setImageSize}
+        />
+      </button>
       <figcaption className="tree-kind">
         {preview.label} - {visibleTriangles.length} / {mapping.triangles.length} triangles shown
       </figcaption>
@@ -140,6 +138,7 @@ function UvMapCanvas({
   const dragRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [view, setView] = useState<UvView>(DEFAULT_UV_VIEW);
+  const [viewport, setViewport] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }));
 
   useEffect(() => {
     let cancelled = false;
@@ -171,6 +170,15 @@ function UvMapCanvas({
     render();
     return () => observer.disconnect();
   }, [image, triangles, view]);
+
+  useEffect(() => {
+    if (!large) {
+      return undefined;
+    }
+    const resize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, [large]);
 
   const zoom = (event: ReactWheelEvent<HTMLCanvasElement>) => {
     event.preventDefault();
@@ -217,21 +225,47 @@ function UvMapCanvas({
   return (
     <div
       className={`uv-map-preview ${large ? 'large' : ''}`}
-      style={imageSize ? { aspectRatio: `${imageSize.width} / ${imageSize.height}` } : undefined}
+      style={getUvMapStyle(imageSize, large, viewport)}
     >
       <canvas
         ref={canvasRef}
         aria-label={`Texture ${textureIndex} UV map`}
-        onWheel={zoom}
-        onPointerDown={startPan}
-        onPointerMove={pan}
-        onPointerUp={stopPan}
-        onPointerCancel={stopPan}
+        onWheel={large ? zoom : undefined}
+        onPointerDown={large ? startPan : undefined}
+        onPointerMove={large ? pan : undefined}
+        onPointerUp={large ? stopPan : undefined}
+        onPointerCancel={large ? stopPan : undefined}
       />
-      <button className="uv-map-reset" type="button" onClick={() => setView(DEFAULT_UV_VIEW)}>Reset</button>
-      <span className="uv-map-zoom">{Math.round(view.zoom * 100)}%</span>
+      {large && (
+        <>
+          <button className="uv-map-reset" type="button" onClick={() => setView(DEFAULT_UV_VIEW)}>Reset</button>
+          <span className="uv-map-zoom">{Math.round(view.zoom * 100)}%</span>
+        </>
+      )}
     </div>
   );
+}
+
+function getUvMapStyle(
+  imageSize: { width: number; height: number } | null,
+  large: boolean,
+  viewport: { width: number; height: number }
+): React.CSSProperties | undefined {
+  if (!imageSize) {
+    return undefined;
+  }
+  const aspectRatio = imageSize.width / imageSize.height;
+  if (!large) {
+    return undefined;
+  }
+  const maxWidth = Math.min(viewport.width * 0.9, 1100);
+  const maxHeight = Math.max(1, viewport.height * 0.8);
+  const width = Math.min(maxWidth, maxHeight * aspectRatio);
+  return {
+    width,
+    height: width / aspectRatio,
+    aspectRatio: `${imageSize.width} / ${imageSize.height}`
+  };
 }
 
 function drawUvMap(canvas: HTMLCanvasElement, image: HTMLImageElement, triangles: UvTriangle[], view: UvView) {

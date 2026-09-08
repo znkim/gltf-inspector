@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { Matrix4 } from 'three';
 import type { BufferGeometry } from 'three';
 import type { GltfMeshDef, GltfPrimitiveDef, LoadedAsset } from '../../types/gltf';
@@ -40,8 +41,9 @@ export function InspectorPanel() {
   const assetWorldBox = asset ? summarizeBox(worldAabb(asset.originalModel)) : null;
 
   return (
-    <div className="panel inspector-split-panel">
-      <div className="inspector-pane">
+    <PanelGroup direction="vertical" className="panel inspector-split-panel" autoSaveId="gltf-inspector-inspector-v1">
+      <Panel defaultSize={50} minSize={20}>
+        <div className="inspector-pane">
         <div className="panel-header">
           <span>Inspector</span>
           <label className="header-toggle">
@@ -198,8 +200,11 @@ export function InspectorPanel() {
         {topTab === 'animation' && asset && <AnimationSkinMorphSection asset={asset} selectedObject={object ?? null} />}
           </div>
         </div>
-      </div>
-      <div className="inspector-pane resource-pane">
+        </div>
+      </Panel>
+      <PanelResizeHandle className="resize-handle horizontal inspector-resize-handle" />
+      <Panel defaultSize={50} minSize={20}>
+        <div className="inspector-pane resource-pane">
         <div className="panel-header">Resources</div>
         <div className="inspector-pane-body">
           <div className="inspector-tabs vertical">
@@ -220,8 +225,9 @@ export function InspectorPanel() {
             {asset && resourceTab === 'uv-map' && <PrimitiveUvSection asset={asset} selectedPrimitive={selectedPrimitive} />}
           </div>
         </div>
-      </div>
-    </div>
+        </div>
+      </Panel>
+    </PanelGroup>
   );
 }
 
