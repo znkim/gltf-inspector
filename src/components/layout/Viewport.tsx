@@ -80,9 +80,19 @@ export function Viewport() {
     observer.observe(canvas);
     const clickMoveThresholdPx = 4;
     const clickTimeThresholdMs = 450;
-    let hoverFrame = 0;
+    const hoverDelayMs = 120;
+    let hoverTimer = 0;
     let hoverPointer: PointerEvent | null = null;
+    const cancelHoverPick = () => {
+      hoverPointer = null;
+      if (hoverTimer) {
+        window.clearTimeout(hoverTimer);
+        hoverTimer = 0;
+      }
+    };
     const onPointerDown = (event: PointerEvent) => {
+      cancelHoverPick();
+      canvas.style.cursor = 'default';
       if (event.button !== 0) {
         pointerDownRef.current = null;
         return;
@@ -118,23 +128,25 @@ export function Viewport() {
       }
     };
     const onPointerMove = (event: PointerEvent) => {
-      hoverPointer = event;
-      if (hoverFrame) {
+      // Raycasting a large primitive is CPU-heavy. Never run it while OrbitControls
+      // is receiving a drag, and wait until ordinary pointer movement has stopped.
+      if (pointerDownRef.current || event.buttons !== 0) {
+        cancelHoverPick();
         return;
       }
-      hoverFrame = requestAnimationFrame(() => {
-        hoverFrame = 0;
+      hoverPointer = event;
+      if (hoverTimer) {
+        window.clearTimeout(hoverTimer);
+      }
+      hoverTimer = window.setTimeout(() => {
+        hoverTimer = 0;
         if (hoverPointer) {
           canvas.style.cursor = controller.canPick(hoverPointer) ? 'pointer' : 'default';
         }
-      });
+      }, hoverDelayMs);
     };
     const onPointerLeave = () => {
-      hoverPointer = null;
-      if (hoverFrame) {
-        cancelAnimationFrame(hoverFrame);
-        hoverFrame = 0;
-      }
+      cancelHoverPick();
       canvas.style.cursor = 'default';
     };
     const onDoubleClick = (event: MouseEvent) => {
@@ -166,9 +178,7 @@ export function Viewport() {
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerleave', onPointerLeave);
       canvas.removeEventListener('dblclick', onDoubleClick);
-      if (hoverFrame) {
-        cancelAnimationFrame(hoverFrame);
-      }
+      cancelHoverPick();
       canvas.style.cursor = 'default';
       observer.disconnect();
       controller.dispose();

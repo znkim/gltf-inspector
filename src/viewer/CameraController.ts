@@ -10,6 +10,8 @@ export class CameraController {
   active: PerspectiveCamera | OrthographicCamera;
   private aspect = 1;
   private focusRadius = 10;
+  private appliedNear = Number.NaN;
+  private appliedFar = Number.NaN;
 
   constructor(canvas: HTMLCanvasElement) {
     this.perspective.position.set(16, 12, 20);
@@ -36,6 +38,8 @@ export class CameraController {
     next.position.copy(this.active.position);
     next.quaternion.copy(this.active.quaternion);
     this.active = next;
+    this.appliedNear = Number.NaN;
+    this.appliedFar = Number.NaN;
     this.controls.object = this.active;
     if (focusObject) {
       this.focus(focusObject, false);
@@ -113,8 +117,15 @@ export class CameraController {
   private updateClipPlanes() {
     const radius = Math.max(this.focusRadius, 1);
     const distance = Math.max(this.active.position.distanceTo(this.controls.target), radius);
-    this.active.near = Math.max(Math.min(radius / 1000, distance / 500), 0.001);
-    this.active.far = Math.max(distance + radius * 100, 25000);
+    const near = Math.max(Math.min(radius / 1000, distance / 500), 0.001);
+    const far = Math.max(distance + radius * 100, 25000);
+    if (near === this.appliedNear && far === this.appliedFar) {
+      return;
+    }
+    this.active.near = near;
+    this.active.far = far;
+    this.appliedNear = near;
+    this.appliedFar = far;
     this.active.updateProjectionMatrix();
   }
 }
