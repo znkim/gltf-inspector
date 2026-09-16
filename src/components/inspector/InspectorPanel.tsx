@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { Matrix4 } from 'three';
-import type { BufferGeometry } from 'three';
 import type { GltfMeshDef, GltfPrimitiveDef, LoadedAsset } from '../../types/gltf';
 import { useAssetStore } from '../../state/assetStore';
 import { useSelectionStore } from '../../state/selectionStore';
@@ -33,7 +32,6 @@ export function InspectorPanel() {
   const object = selectedScene ? asset?.originalModel ?? null : selectedNodeIndex !== null ? asset?.inspection.nodeToObject.get(selectedNodeIndex) : null;
   const nodeDef = selectedNodeIndex !== null ? asset?.source.nodes[selectedNodeIndex] : undefined;
   const transform = object ? inspectTransform(nodeDef, object) : null;
-  const geometry = object ? findFirstGeometry(object) : undefined;
   const worldBox = object ? summarizeBox(worldAabb(object)) : null;
   const mesh = nodeDef?.mesh !== undefined ? asset?.source.meshes[nodeDef.mesh] : undefined;
   const selectedPrimitiveDef = selectedPrimitive && asset ? asset.source.meshes[selectedPrimitive.meshIndex]?.primitives?.[selectedPrimitive.primitiveIndex] : undefined;
@@ -90,7 +88,7 @@ export function InspectorPanel() {
         )}
         {topTab === 'selection' && transform && (
           <>
-          <SelectionStats asset={asset} selectedScene={selectedScene} mesh={mesh} geometry={geometry} selectedPrimitiveDef={selectedPrimitiveDef} />
+          <SelectionStats asset={asset} selectedScene={selectedScene} mesh={mesh} selectedPrimitiveDef={selectedPrimitiveDef} />
           <section className="section">
             <h3 className="section-title">Transform</h3>
             <KeyValue label="Selection" value={selectedScene ? 'Scene' : 'Node'} />
@@ -124,7 +122,7 @@ export function InspectorPanel() {
             <KeyValue label="Mesh" value={selectedPrimitive.meshIndex} />
             <KeyValue label="Primitive" value={selectedPrimitive.primitiveIndex} />
             {(() => {
-              const stats = inspectPrimitive(asset.source, selectedPrimitiveDef, geometry);
+              const stats = inspectPrimitive(asset.source, selectedPrimitiveDef);
               return (
                 <>
                   <KeyValue label="Mode" value={stats.mode} />
@@ -172,7 +170,7 @@ export function InspectorPanel() {
             <KeyValue label="Mesh Index" value={nodeDef.mesh} />
             <KeyValue label="Name" value={mesh.name ?? '-'} />
             {(mesh.primitives ?? []).map((primitive, primitiveIndex) => {
-              const stats = inspectPrimitive(asset.source, primitive, geometry);
+              const stats = inspectPrimitive(asset.source, primitive);
               return (
                 <div key={primitiveIndex} className="section">
                   <KeyValue label="Primitive" value={primitiveIndex} />
@@ -279,13 +277,11 @@ function SelectionStats({
   asset,
   selectedScene,
   mesh,
-  geometry,
   selectedPrimitiveDef
 }: {
   asset: LoadedAsset | null;
   selectedScene: boolean;
   mesh?: GltfMeshDef;
-  geometry?: BufferGeometry;
   selectedPrimitiveDef?: GltfPrimitiveDef;
 }) {
   if (!asset || (!selectedScene && !selectedPrimitiveDef && !mesh)) {
@@ -299,13 +295,13 @@ function SelectionStats({
     }
     : selectedPrimitiveDef
     ? {
-      vertexCount: inspectPrimitive(asset.source, selectedPrimitiveDef, geometry).vertexCount,
-      triangleCount: inspectPrimitive(asset.source, selectedPrimitiveDef, geometry).triangleCount,
+      vertexCount: inspectPrimitive(asset.source, selectedPrimitiveDef).vertexCount,
+      triangleCount: inspectPrimitive(asset.source, selectedPrimitiveDef).triangleCount,
       primitiveCount: 1
     }
     : (mesh?.primitives ?? []).reduce<SelectionStatSummary>(
       (acc, primitive) => {
-        const primitiveStats = inspectPrimitive(asset.source, primitive, geometry);
+        const primitiveStats = inspectPrimitive(asset.source, primitive);
         acc.vertexCount += primitiveStats.vertexCount;
         acc.triangleCount += primitiveStats.triangleCount;
         acc.primitiveCount += 1;
@@ -407,20 +403,6 @@ function formatNumber(value: number, expandedNumbers = false): string {
   }
   const digits = abs >= 1 ? 8 : Math.min(16, Math.max(8, Math.ceil(-Math.log10(abs)) + 6));
   return value.toFixed(digits).replace(/\.?0+$/, '');
-}
-
-function findFirstGeometry(object: object): BufferGeometry | undefined {
-  const root = object as { traverse?: (callback: (child: object) => void) => void; geometry?: BufferGeometry };
-  if (root.geometry) {
-    return root.geometry;
-  }
-  let geometry: BufferGeometry | undefined;
-  root.traverse?.((child) => {
-    if (!geometry) {
-      geometry = (child as { geometry?: BufferGeometry }).geometry;
-    }
-  });
-  return geometry;
 }
 
 function objectValue(value: unknown): Record<string, unknown> | null {
