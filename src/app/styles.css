@@ -671,6 +671,96 @@ button:disabled {
   backdrop-filter: blur(12px);
 }
 
+.viewport-controls-help {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 3;
+  max-width: calc(100% - 20px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid rgba(87, 98, 108, 0.42);
+  border-radius: 8px;
+  background: rgba(9, 12, 15, 0.62);
+  color: #aeb8c1;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(10px);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.viewport-help-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.viewport-help-title {
+  color: #e6ebef;
+  font-weight: 700;
+}
+
+.viewport-mouse-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.viewport-mouse-icon {
+  width: 15px;
+  height: 18px;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.viewport-mouse-icon .mouse-body,
+.viewport-mouse-icon .mouse-button,
+.viewport-mouse-icon .mouse-wheel,
+.viewport-mouse-icon .mouse-divider {
+  fill: none;
+  stroke: #87939d;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.viewport-mouse-icon .mouse-button {
+  stroke: none;
+}
+
+.viewport-mouse-icon.left .mouse-left,
+.viewport-mouse-icon.right .mouse-right,
+.viewport-mouse-icon.wheel .mouse-wheel {
+  fill: #6aa0e8;
+  stroke: #9bc4fb;
+}
+
+.viewport-controls-help kbd {
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  margin-right: 2px;
+  padding: 0 4px;
+  border: 1px solid #59636c;
+  border-bottom-color: #78838d;
+  border-radius: 4px;
+  background: #282e34;
+  color: #f1f5f8;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+  font: 700 10px/1 system-ui, sans-serif;
+}
+
+.viewport-help-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(126, 138, 148, 0.35);
+}
+
 .view-gizmo {
   position: absolute;
   top: 10px;
@@ -941,6 +1031,13 @@ button:disabled {
 }
 
 @media (max-width: 720px) {
+  .viewport-controls-help {
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
   .sample-picker {
     top: auto;
     bottom: 18px;

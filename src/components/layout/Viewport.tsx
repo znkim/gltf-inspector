@@ -10,6 +10,15 @@ import { useSettingsStore } from '../../state/settingsStore';
 import { useViewerStore } from '../../state/viewerStore';
 import { getActiveController, getActiveRenderer, setActiveController } from './viewportController';
 
+const AXIS_VIEW_SHORTCUTS: Record<string, ViewAxis> = {
+  KeyA: 'x',
+  KeyD: '-x',
+  KeyW: 'z',
+  KeyS: '-z',
+  KeyQ: 'y',
+  KeyE: '-y'
+};
+
 export function Viewport() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pointerDownRef = useRef<{ x: number; y: number; time: number } | null>(null);
@@ -215,6 +224,22 @@ export function Viewport() {
   }, [autoOrbit]);
 
   useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey || isEditableTarget(event.target)) {
+        return;
+      }
+      const axis = AXIS_VIEW_SHORTCUTS[event.code];
+      if (!axis) {
+        return;
+      }
+      event.preventDefault();
+      getActiveController()?.cameraController.viewAxis(axis);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useEffect(() => {
     const selection = useSelectionStore.getState();
     const currentAsset = useAssetStore.getState().asset;
     const focusObject =
@@ -305,6 +330,7 @@ export function Viewport() {
             <input type="color" value={backgroundColor} onChange={(event) => setBackgroundColor(event.currentTarget.value)} />
           </label>
         </div>
+        <ViewportControlsHelp />
         {!asset && issues.length > 0 && (
           <div className="viewport-message">
             <strong>{issues[issues.length - 1]?.code}</strong>
@@ -326,6 +352,45 @@ export function Viewport() {
       </div>
     </div>
   );
+}
+
+function ViewportControlsHelp() {
+  return (
+    <div className="viewport-controls-help" aria-label="Viewport controls">
+      <div className="viewport-help-group">
+        <span className="viewport-help-title">Axis views</span>
+        <span><kbd>A</kbd> Left</span>
+        <span><kbd>D</kbd> Right</span>
+        <span><kbd>W</kbd> Front</span>
+        <span><kbd>S</kbd> Back</span>
+        <span><kbd>Q</kbd> Top</span>
+        <span><kbd>E</kbd> Bottom</span>
+      </div>
+      <div className="viewport-help-divider" aria-hidden="true" />
+      <div className="viewport-help-group">
+        <span className="viewport-help-title">Mouse</span>
+        <span className="viewport-mouse-action"><MouseControlIcon control="left" />Rotate</span>
+        <span className="viewport-mouse-action"><MouseControlIcon control="wheel" />Zoom</span>
+        <span className="viewport-mouse-action"><MouseControlIcon control="right" />Pan</span>
+      </div>
+    </div>
+  );
+}
+
+function MouseControlIcon({ control }: { control: 'left' | 'wheel' | 'right' }) {
+  return (
+    <svg className={`viewport-mouse-icon ${control}`} viewBox="0 0 24 28" aria-hidden="true">
+      <path className="mouse-body" d="M12 1.5c-5.1 0-8.5 3.6-8.5 9v7c0 5.3 3.4 9 8.5 9s8.5-3.7 8.5-9v-7c0-5.4-3.4-9-8.5-9Z" />
+      <path className="mouse-button mouse-left" d="M11.2 2v8H4c.2-4.7 2.9-7.8 7.2-8Z" />
+      <path className="mouse-button mouse-right" d="M12.8 2c4.3.2 7 3.3 7.2 8h-7.2V2Z" />
+      <rect className="mouse-wheel" x="10.25" y="4" width="3.5" height="6.5" rx="1.75" />
+      <path className="mouse-divider" d="M12 1.8v9" />
+    </svg>
+  );
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 }
 
 function SampleAssetPicker({ onOpenSample }: { onOpenSample: (sample: SampleAsset) => void }) {
