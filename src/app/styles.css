@@ -1380,6 +1380,34 @@ button:disabled {
   padding: 8px 10px;
 }
 
+.issue-group {
+  border-bottom: 1px solid #39434d;
+}
+
+.issue-group-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 10px 2px;
+}
+
+.issue-group-count {
+  margin-left: auto;
+  color: #f1f5f8;
+  font-weight: 600;
+}
+
+.issue-group-summary {
+  padding: 0 10px 6px;
+  color: #98a3ad;
+  font-size: 11px;
+}
+
+.issue-group .issue {
+  padding-left: 18px;
+}
+
 .issue-action {
   width: 100%;
   min-height: 0;
