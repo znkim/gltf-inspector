@@ -204,6 +204,10 @@ export function Viewport() {
   }, [renderMode, asset]);
 
   useEffect(() => {
+    getActiveController()?.setPointSize(settings.pointSize);
+  }, [asset, settings.pointSize]);
+
+  useEffect(() => {
     getActiveController()?.setRenderStateOverrides(renderStateOverrides);
   }, [renderStateOverrides, asset]);
 

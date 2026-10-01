@@ -33,6 +33,8 @@ export function Toolbar() {
   const setRenderStateOverride = useViewerStore((state) => state.setRenderStateOverride);
   const resetViewerSettings = useViewerStore((state) => state.resetViewerSettings);
   const resetSettings = useSettingsStore((state) => state.resetSettings);
+  const pointSize = useSettingsStore((state) => state.pointSize);
+  const setPointSize = useSettingsStore((state) => state.setPointSize);
   const resetPanelLayout = useNavigationStore((state) => state.resetPanelLayout);
   const lightingMode = useViewerStore((state) => state.lightingMode);
   const setLightingMode = useViewerStore((state) => state.setLightingMode);
@@ -47,6 +49,7 @@ export function Toolbar() {
   const displayRecenter = useViewerStore((state) => state.displayRecenter);
   const setDisplayRecenter = useViewerStore((state) => state.setDisplayRecenter);
   const hasRenderStateOverride = Object.values(renderStateOverrides).some((value) => value !== 'default');
+  const hasPointPrimitives = asset?.source.primitives.some(({ primitive }) => primitive.mode === 0) ?? false;
 
   const resetAllSettings = () => {
     resetViewerSettings();
@@ -287,6 +290,26 @@ export function Toolbar() {
                 ['disabled', 'Off']
               ]}
             />
+            {hasPointPrimitives && (
+              <>
+                <div className="toolbar-popover-section-title">Points</div>
+                <label className="toolbar-field">
+                  <span>Point Size</span>
+                  <div className="toolbar-point-size-control">
+                    <input
+                      type="range"
+                      min="1"
+                      max="20"
+                      step="1"
+                      value={pointSize}
+                      onChange={(event) => setPointSize(Number(event.currentTarget.value))}
+                      aria-label="Point Size"
+                    />
+                    <output>{pointSize} px</output>
+                  </div>
+                </label>
+              </>
+            )}
             <button className="toolbar-reset-button" onClick={resetAllSettings}>
               Reset All Settings
             </button>
