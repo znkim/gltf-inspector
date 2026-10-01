@@ -407,6 +407,25 @@ button:disabled {
   max-width: none;
 }
 
+.toolbar-point-size-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.toolbar-point-size-control input {
+  width: 65px;
+  min-width: 0;
+}
+
+.toolbar-point-size-control output {
+  min-width: 38px;
+  color: #f1f5f8;
+  font-size: 12px;
+  text-align: right;
+}
+
 .toolbar-reset-button {
   width: 100%;
   margin-top: 4px;

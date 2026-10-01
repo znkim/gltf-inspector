@@ -8,6 +8,7 @@ import { PickingManager, type PickPointer } from './PickingManager';
 import { RenderStateOverrideManager } from './RenderStateOverrideManager';
 import { RendererManager } from './RendererManager';
 import { useViewerStore } from '../state/viewerStore';
+import { applyPointSize } from './PointSize';
 
 export class ViewerController {
   readonly rendererManager: RendererManager;
@@ -59,6 +60,12 @@ export class ViewerController {
   setRenderStateOverrides(overrides: RenderStateOverrides) {
     if (this.asset) {
       this.renderStateOverrides.apply(this.asset.originalModel, overrides);
+    }
+  }
+
+  setPointSize(size: number) {
+    if (this.asset) {
+      applyPointSize(this.asset.originalModel, size);
     }
   }
 
