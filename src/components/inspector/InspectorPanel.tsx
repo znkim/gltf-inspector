@@ -125,6 +125,9 @@ export function InspectorPanel() {
               const stats = inspectPrimitive(asset.source, selectedPrimitiveDef);
               return (
                 <>
+                  <KeyValue label="Representation" value={stats.representation} />
+                  {stats.splatCount > 0 && <KeyValue label="Splat Count" value={stats.splatCount} />}
+                  {stats.voxelCount > 0 && <KeyValue label="Voxel Cells" value={stats.voxelCount} />}
                   <KeyValue label="Mode" value={stats.mode} />
                   <KeyValue label="Indexed" value={String(stats.indexed)} />
                   <KeyValue label="Vertex Count" value={stats.vertexCount} />
@@ -174,6 +177,9 @@ export function InspectorPanel() {
               return (
                 <div key={primitiveIndex} className="section">
                   <KeyValue label="Primitive" value={primitiveIndex} />
+                  <KeyValue label="Representation" value={stats.representation} />
+                  {stats.splatCount > 0 && <KeyValue label="Splat Count" value={stats.splatCount} />}
+                  {stats.voxelCount > 0 && <KeyValue label="Voxel Cells" value={stats.voxelCount} />}
                   <KeyValue label="Mode" value={stats.mode} />
                   <KeyValue label="Indexed" value={String(stats.indexed)} />
                   <KeyValue label="Vertex Count" value={stats.vertexCount} />
@@ -238,6 +244,8 @@ function AssetStats({ asset }: { asset: LoadedAsset }) {
         <Stat label="Triangles" value={perf.triangleCount} />
         <Stat label="Vertices" value={perf.vertexCount} />
         <Stat label="Meshes" value={perf.meshCount} />
+        {perf.gaussianSplatCount > 0 && <Stat label="Splats" value={perf.gaussianSplatCount} />}
+        {perf.voxelCellCount > 0 && <Stat label="Voxels" value={perf.voxelCellCount} />}
         <Stat label="Primitives" value={perf.primitiveCount} />
         <Stat label="Draw Calls" value={perf.drawCalls} />
         <Stat label="Textures" value={perf.textureCount} />

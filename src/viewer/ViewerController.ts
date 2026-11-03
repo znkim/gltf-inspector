@@ -1,4 +1,4 @@
-import { Box3, Vector3, type Object3D } from 'three';
+import { Vector3, type Object3D } from 'three';
 import type { EnvironmentMode, LightingMode, LoadedAsset, RenderMode, RenderStateOverrides } from '../types/gltf';
 import type { PickSelection } from '../inspection/InspectionIndex';
 import { CameraController } from './CameraController';
@@ -8,6 +8,7 @@ import { PickingManager, type PickPointer } from './PickingManager';
 import { RenderStateOverrideManager } from './RenderStateOverrideManager';
 import { RendererManager } from './RendererManager';
 import { useViewerStore } from '../state/viewerStore';
+import { worldAabb } from '../inspection/BoundingBoxInspector';
 
 export class ViewerController {
   readonly rendererManager: RendererManager;
@@ -82,7 +83,7 @@ export class ViewerController {
     if (!recenter || !this.asset) {
       return [0, 0, 0];
     }
-    const box = new Box3().setFromObject(this.asset.originalModel);
+    const box = worldAabb(this.asset.originalModel);
     const center = new Vector3();
     box.getCenter(center);
     displayRoot.position.copy(center.multiplyScalar(-1));

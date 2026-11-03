@@ -74,6 +74,8 @@ export function PerformancePanel() {
             <KeyValue label="Primitives" value={perf.primitiveCount} />
             <KeyValue label="Triangles" value={perf.triangleCount} />
             <KeyValue label="Vertices" value={perf.vertexCount} />
+            {perf.gaussianSplatCount > 0 && <KeyValue label="Gaussian Splats" value={perf.gaussianSplatCount} />}
+            {perf.voxelCellCount > 0 && <KeyValue label="Voxel Cells" value={perf.voxelCellCount} />}
             <KeyValue label="Draw Calls" value={`${perf.drawCalls} estimated`} />
             <KeyValue label="Materials" value={perf.materialCount} />
             <KeyValue label="Textures" value={perf.textureCount} />

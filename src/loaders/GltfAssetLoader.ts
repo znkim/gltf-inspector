@@ -19,6 +19,7 @@ import { worldAabb } from '../inspection/BoundingBoxInspector';
 import type { InspectorIssue, LoadedAsset, PerformanceMetrics, RuntimeGltfScene } from '../types/gltf';
 import { analyzeCoordinates } from '../inspection/CoordinateAnalyzer';
 import { validateBundle } from '../validation/ValidationService';
+import { registerRepresentationPlugins } from './GltfRepresentationPlugins';
 
 export async function loadGltfAsset(bundle: AssetBundle, renderer: WebGLRenderer): Promise<LoadedAsset> {
   const startedAt = performance.now();
@@ -40,10 +41,28 @@ export async function loadGltfAsset(bundle: AssetBundle, renderer: WebGLRenderer
       });
     }
   }
+  if (source.extensionsUsed.includes('KHR_gaussian_splatting')) {
+    issues.push({
+      id: 'gaussian-splat-baseline',
+      severity: 'info',
+      code: 'GAUSSIAN_SPLATTING_BASELINE_RENDERER',
+      message: 'Gaussian splats use degree-0 color and screen-space Gaussian falloff; anisotropic rotation, higher-order SH, and camera sorting are not yet applied.'
+    });
+  }
+  if (source.extensionsUsed.includes('EXT_primitive_voxels')) {
+    issues.push({
+      id: 'voxel-preview-baseline',
+      severity: 'info',
+      code: 'VOXEL_POINT_PREVIEW',
+      message: 'Draft voxel primitives are shown as a sampled Cartesian point preview; implicit cylinder and ellipsoid shapes are retained as metadata only.'
+    });
+  }
+
 
   const manager = new LoadingManager();
   manager.setURLModifier((url) => bundle.resolveObjectUrl(url));
   const loader = new GLTFLoader(manager);
+  registerRepresentationPlugins(loader);
   const baseUrl = import.meta.env.BASE_URL;
   const draco = new DRACOLoader(manager).setDecoderPath(`${baseUrl}decoders/draco/`);
   const ktx2 = new KTX2Loader(manager).setTranscoderPath(`${baseUrl}decoders/basis/`).detectSupport(renderer);
@@ -168,6 +187,8 @@ function buildPerformanceMetrics(
   const primitiveStats = source.primitives.map(({ primitive }) => inspectPrimitive(source, primitive));
   const triangleCount = primitiveStats.reduce((sum, stat) => sum + stat.triangleCount, 0);
   const vertexCount = primitiveStats.reduce((sum, stat) => sum + stat.vertexCount, 0);
+  const gaussianSplatCount = primitiveStats.reduce((sum, stat) => sum + stat.splatCount, 0);
+  const voxelCellCount = primitiveStats.reduce((sum, stat) => sum + stat.voxelCount, 0);
   const estimatedGeometryMemory = runtime.decodedGeometries.reduce((sum, geometry) => {
     let bytes = geometry.index?.array.byteLength ?? 0;
     for (const attribute of Object.values(geometry.attributes)) {
@@ -185,6 +206,8 @@ function buildPerformanceMetrics(
     primitiveCount: source.primitives.length,
     triangleCount,
     vertexCount,
+    gaussianSplatCount,
+    voxelCellCount,
     drawCalls: source.primitives.length,
     materialCount: source.materials.length,
     textureCount: source.textures.length,

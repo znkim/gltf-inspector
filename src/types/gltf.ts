@@ -95,6 +95,8 @@ export interface PerformanceMetrics {
   primitiveCount: number;
   triangleCount: number;
   vertexCount: number;
+  gaussianSplatCount: number;
+  voxelCellCount: number;
   drawCalls: number;
   materialCount: number;
   textureCount: number;

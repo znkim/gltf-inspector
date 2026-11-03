@@ -1,5 +1,6 @@
-import { Box3, MathUtils, OrthographicCamera, PerspectiveCamera, Spherical, Vector3, type Object3D } from 'three';
+import { MathUtils, OrthographicCamera, PerspectiveCamera, Spherical, Vector3, type Object3D } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { worldAabb } from '../inspection/BoundingBoxInspector';
 
 export type ViewAxis = 'x' | 'y' | 'z' | '-x' | '-y' | '-z';
 
@@ -48,7 +49,7 @@ export class CameraController {
   }
 
   focus(object: Object3D, resetViewDirection = true) {
-    const box = new Box3().setFromObject(object);
+    const box = worldAabb(object);
     if (box.isEmpty()) {
       return;
     }
