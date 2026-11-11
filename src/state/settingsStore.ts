@@ -8,6 +8,7 @@ export interface WarningThresholds {
 
 interface SettingsState {
   thresholds: WarningThresholds;
+  pointSize: number;
   showGrid: boolean;
   showWorldAxes: boolean;
   showNodeAxes: boolean;
@@ -18,6 +19,7 @@ interface SettingsState {
   setShowNodeAxes: (value: boolean) => void;
   setShowGeometryLocalBox: (value: boolean) => void;
   setShowWorldAabb: (value: boolean) => void;
+  setPointSize: (value: number) => void;
   resetSettings: () => void;
 }
 
@@ -26,6 +28,7 @@ const DEFAULT_SETTINGS = {
     largeCoordinate: 100000,
     translationToSizeRatio: 100
   },
+  pointSize: 1,
   showGrid: true,
   showWorldAxes: true,
   showNodeAxes: true,
@@ -33,7 +36,7 @@ const DEFAULT_SETTINGS = {
   showWorldAabb: true
 } satisfies Pick<
   SettingsState,
-  'thresholds' | 'showGrid' | 'showWorldAxes' | 'showNodeAxes' | 'showGeometryLocalBox' | 'showWorldAabb'
+  'thresholds' | 'pointSize' | 'showGrid' | 'showWorldAxes' | 'showNodeAxes' | 'showGeometryLocalBox' | 'showWorldAabb'
 >;
 
 export const useSettingsStore = create<SettingsState>()(
@@ -45,6 +48,7 @@ export const useSettingsStore = create<SettingsState>()(
       setShowNodeAxes: (showNodeAxes) => set({ showNodeAxes }),
       setShowGeometryLocalBox: (showGeometryLocalBox) => set({ showGeometryLocalBox }),
       setShowWorldAabb: (showWorldAabb) => set({ showWorldAabb }),
+      setPointSize: (value) => set({ pointSize: Number.isFinite(value) ? Math.max(1, Math.min(20, Math.round(value))) : 1 }),
       resetSettings: () =>
         set({
           ...DEFAULT_SETTINGS,
@@ -56,6 +60,7 @@ export const useSettingsStore = create<SettingsState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         thresholds: state.thresholds,
+        pointSize: state.pointSize,
         showGrid: state.showGrid,
         showWorldAxes: state.showWorldAxes,
         showNodeAxes: state.showNodeAxes,
