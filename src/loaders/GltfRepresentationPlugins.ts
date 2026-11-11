@@ -57,10 +57,15 @@ class GaussianSplattingPlugin {
 
   constructor(private readonly parser: GltfParserLike) {}
 
-  async loadMesh(meshIndex: number): Promise<Group | Points | null> {
+  // GLTFLoader treats any truthy return as handled, so non-matching meshes must return null synchronously.
+  loadMesh(meshIndex: number): Promise<Group | Points> | null {
     const mesh = readArray<MeshDef>(this.parser.json.meshes)[meshIndex];
     const primitives = mesh?.primitives ?? [];
     if (!primitives.some(isGaussianPrimitive)) return null;
+    return this.createMesh(meshIndex, mesh, primitives);
+  }
+
+  private async createMesh(meshIndex: number, mesh: MeshDef | undefined, primitives: PrimitiveDef[]): Promise<Group | Points> {
     if (!primitives.every(isGaussianPrimitive)) {
       throw new Error('Mixed Gaussian splat and regular primitives in one mesh are not supported.');
     }
@@ -126,13 +131,17 @@ class VoxelPrimitivePlugin {
 
   constructor(private readonly parser: GltfParserLike) {}
 
-  async loadMesh(meshIndex: number): Promise<Group | null> {
+  // GLTFLoader treats any truthy return as handled, so non-matching meshes must return null synchronously.
+  loadMesh(meshIndex: number): Promise<Group> | null {
     const mesh = readArray<MeshDef>(this.parser.json.meshes)[meshIndex];
     const primitives = mesh?.primitives ?? [];
     if (primitives.length === 0 || !primitives.every(isVoxelPrimitive)) {
       return null;
     }
+    return this.createMesh(meshIndex, mesh, primitives);
+  }
 
+  private async createMesh(meshIndex: number, mesh: MeshDef | undefined, primitives: PrimitiveDef[]): Promise<Group> {
     const group = new Group();
     group.name = mesh?.name ?? `Voxel mesh ${meshIndex}`;
     await Promise.all(primitives.map(async (primitive, primitiveIndex) => {
