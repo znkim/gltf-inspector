@@ -11,6 +11,9 @@ export interface PrimitiveStats {
   draco: boolean;
   meshopt: boolean;
   quantized: boolean;
+  representation: 'mesh' | 'points' | 'gaussian-splat' | 'voxel';
+  splatCount: number;
+  voxelCount: number;
 }
 
 export function inspectPrimitive(source: SourceGltfDocument, primitive: GltfPrimitiveDef, geometry?: BufferGeometry): PrimitiveStats {
@@ -23,6 +26,14 @@ export function inspectPrimitive(source: SourceGltfDocument, primitive: GltfPrim
   const indexCount = primitive.indices !== undefined
     ? source.accessors[primitive.indices]?.count ?? geometry?.index?.count ?? 0
     : 0;
+  const gaussian = Boolean(primitive.extensions?.KHR_gaussian_splatting);
+  const voxel = primitive.extensions?.EXT_primitive_voxels;
+  const dimensions = objectValue(voxel)?.dimensions;
+  const voxelCount = Array.isArray(dimensions) && dimensions.length === 3 &&
+    dimensions.every((value) => typeof value === 'number' && value > 0)
+    ? dimensions.reduce<number>((product, value) => product * Number(value), 1)
+    : 0;
+  const representation = voxel ? 'voxel' : gaussian ? 'gaussian-splat' : mode === 0 ? 'points' : 'mesh';
   return {
     mode,
     indexed,
@@ -32,7 +43,10 @@ export function inspectPrimitive(source: SourceGltfDocument, primitive: GltfPrim
     materialIndex: primitive.material ?? null,
     draco: Boolean(primitive.extensions?.KHR_draco_mesh_compression),
     meshopt: Boolean(primitive.extensions?.EXT_meshopt_compression ?? primitive.extensions?.KHR_meshopt_compression),
-    quantized: source.extensionsUsed.includes('KHR_mesh_quantization')
+    quantized: source.extensionsUsed.includes('KHR_mesh_quantization'),
+    representation,
+    splatCount: gaussian ? vertexCount : 0,
+    voxelCount
   };
 }
 
@@ -46,4 +60,8 @@ export function triangleCount(mode: number, elementCount: number): number {
     default:
       return 0;
   }
+}
+
+function objectValue(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }

@@ -4,6 +4,7 @@ import type { ValidatorReport } from './ValidatorTypes';
 interface ValidateRequest {
   id: string;
   primaryKey: string;
+  primaryFormat: 'glb' | 'gltf';
   primaryBytes: Uint8Array;
   resources: Array<{ key: string; bytes: Uint8Array }>;
 }
@@ -24,7 +25,7 @@ async function validate(request: ValidateRequest) {
   try {
     const report = await validateBytes(request.primaryBytes, {
       uri: request.primaryKey,
-      format: request.primaryKey.toLowerCase().endsWith('.glb') ? 'glb' : 'gltf',
+      format: request.primaryFormat,
       maxIssues: 0,
       writeTimestamp: false,
       externalResourceFunction: (uri: string) => Promise.resolve().then(() => {

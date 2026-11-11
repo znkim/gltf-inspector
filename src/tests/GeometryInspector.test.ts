@@ -52,3 +52,35 @@ it('counts an empty indexed primitive as zero triangles', () => {
   expect(inspectPrimitive(source, { attributes: { POSITION: 0 }, indices: 1 }))
     .toMatchObject({ indexed: true, vertexCount: 9, indexCount: 0, triangleCount: 0 });
 });
+
+it('identifies Gaussian splat primitives and counts splats', () => {
+  const source = buildSourceDocument({
+    accessors: [{ componentType: 5126, type: 'VEC3', count: 42 }],
+    extensionsUsed: ['KHR_gaussian_splatting']
+  });
+  const stats = inspectPrimitive(source, {
+    mode: 0,
+    attributes: { POSITION: 0 },
+    extensions: { KHR_gaussian_splatting: { kernel: 'ellipse', colorSpace: 'lin_rec709_display' } }
+  });
+  expect(stats).toMatchObject({
+    representation: 'gaussian-splat',
+    vertexCount: 42,
+    splatCount: 42,
+    voxelCount: 0
+  });
+});
+
+it('identifies draft voxel primitives and counts cells from dimensions', () => {
+  const source = buildSourceDocument({ extensionsUsed: ['EXT_primitive_voxels'] });
+  const stats = inspectPrimitive(source, {
+    mode: 2147483647,
+    attributes: { _TEMPERATURE: 0 },
+    extensions: { EXT_primitive_voxels: { shape: 0, dimensions: [8, 4, 2] } }
+  });
+  expect(stats).toMatchObject({
+    representation: 'voxel',
+    voxelCount: 64,
+    splatCount: 0
+  });
+});

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { LoadedAsset, GltfJsonObject, GltfJsonValue } from '../../types/gltf';
 import { classifyExtension } from '../../inspection/ExtensionInspector';
 import { resolveTexturePreview } from '../../inspection/TexturePreviewResolver';
@@ -32,15 +33,10 @@ export function MaterialSection({ asset, search = '' }: { asset: LoadedAsset; se
       {materials.map(({ material, index }) => {
         const pbr = objectValue(material.pbrMetallicRoughness);
         const textureSlots = collectMaterialTextureSlots(material);
-        const firstTexture = textureSlots[0]?.index;
         return (
           <details key={index} className={`resource-card ${highlightedMaterials.has(index) ? 'selected' : ''}`}>
             <summary className="resource-card-summary">
-              {firstTexture !== undefined ? (
-                <TexturePreviewImage asset={asset} textureIndex={firstTexture} compact />
-              ) : (
-                <div className="texture-thumb texture-thumb-small texture-thumb-empty">No texture</div>
-              )}
+              <MaterialTextureStack asset={asset} slots={textureSlots} />
               <div className="resource-card-title">
                 <span className="mono">Material {index}</span>
                 <strong>{material.name ?? `Material ${index}`}</strong>
@@ -171,6 +167,49 @@ function useHighlightedTextures(asset: LoadedAsset): Set<number> {
     collectTextureIndices(asset.source.materials[materialIndex], highlighted);
   }
   return highlighted;
+}
+
+const MAX_STACK_BACK_CARDS = 2;
+
+function MaterialTextureStack({ asset, slots }: { asset: LoadedAsset; slots: Array<{ label: string; index: number }> }) {
+  const textures = orderStackTextures(slots);
+  if (textures.length === 0) {
+    return <div className="texture-thumb texture-thumb-small texture-thumb-empty">No texture</div>;
+  }
+  if (textures.length === 1) {
+    return <TexturePreviewImage asset={asset} textureIndex={textures[0].index} compact />;
+  }
+  const backCards = textures.slice(1, 1 + MAX_STACK_BACK_CARDS);
+  const layers = backCards.length;
+  return (
+    <div
+      className="texture-stack"
+      style={{ '--stack-layers': layers } as CSSProperties}
+      title={textures.map((slot) => `${slot.label}: Texture ${slot.index}`).join('\n')}
+    >
+      {backCards.map((slot, position) => {
+        // Rendered furthest-first so nearer cards paint on top.
+        const depth = position + 1;
+        return (
+          <div key={slot.index} className="texture-stack-card back" style={{ '--stack-depth': depth } as CSSProperties} aria-hidden>
+            <TexturePreviewImage asset={asset} textureIndex={slot.index} compact />
+          </div>
+        );
+      }).reverse()}
+      <div className="texture-stack-card front" style={{ '--stack-depth': 0 } as CSSProperties}>
+        <TexturePreviewImage asset={asset} textureIndex={textures[0].index} compact />
+        <span className="texture-stack-count">{textures.length}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Unique textures with the base color / diffuse slot first so it sits on top of the deck. */
+function orderStackTextures(slots: Array<{ label: string; index: number }>): Array<{ label: string; index: number }> {
+  const seen = new Set<number>();
+  const unique = slots.filter((slot) => !seen.has(slot.index) && seen.add(slot.index));
+  const isBase = (slot: { label: string }) => /basecolor|diffuse/i.test(slot.label);
+  return [...unique.filter(isBase), ...unique.filter((slot) => !isBase(slot))];
 }
 
 function TexturePreviewImage({ asset, textureIndex, compact = false }: { asset: LoadedAsset; textureIndex: number; compact?: boolean }) {

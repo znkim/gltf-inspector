@@ -33,6 +33,7 @@ export async function validateBundle(bundle: AssetBundle): Promise<ValidationRep
       worker.postMessage({
         id,
         primaryKey: primary.key,
+        primaryFormat: primary.file.name.toLowerCase().endsWith('.glb') ? 'glb' : 'gltf',
         primaryBytes: primaryResource.bytes,
         resources
       });

@@ -104,7 +104,7 @@ export function Toolbar() {
     <div className="toolbar">
       <div className="toolbar-title"><img src={logoUrl} alt="" className="toolbar-logo" /> glTF Inspector</div>
       <button className="toolbar-button" disabled={loading} onClick={() => inputRef.current?.click()}><ToolbarIcon name="open" /> Open</button>
-      <input ref={inputRef} hidden type="file" multiple accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp,.ktx2,.zip" onChange={(event) => void openFiles(event.currentTarget.files)} />
+      <input ref={inputRef} hidden type="file" multiple accept=".glb,.gltf,.b3dm,.i3dm,.cmpt,.bin,.png,.jpg,.jpeg,.webp,.ktx2,.zip" onChange={(event) => void openFiles(event.currentTarget.files)} />
       <button
         className="toolbar-button"
         disabled={!asset || loading}

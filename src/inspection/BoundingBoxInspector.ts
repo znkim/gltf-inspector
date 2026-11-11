@@ -36,7 +36,16 @@ export function geometryLocalBox(geometry: BufferGeometry): Box3 | null {
 
 export function worldAabb(object: Object3D): Box3 {
   object.updateWorldMatrix(true, true);
-  return new Box3().setFromObject(object);
+  const box = new Box3();
+  object.traverse((descendant) => {
+    const geometry = (descendant as Object3D & { geometry?: BufferGeometry }).geometry;
+    if (!geometry) return;
+    const local = geometryLocalBox(geometry);
+    if (local) {
+      box.union(local.applyMatrix4(descendant.matrixWorld));
+    }
+  });
+  return box;
 }
 
 export function nodeOwnBox(object: Object3D): Box3 {

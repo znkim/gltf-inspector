@@ -1,5 +1,6 @@
 import type { AnimationClip, BufferGeometry, Camera, Material, Object3D, Texture } from 'three';
-import type { AssetBundle } from '../loaders/AssetBundle';
+import type { AssetBundle, LoadedTileInfo } from '../loaders/AssetBundle';
+import type { I3dmOrientation } from '../loaders/I3dmInstancing';
 import type { InspectionIndex } from '../inspection/InspectionIndex';
 import type { CoordinateAnalysis } from '../inspection/CoordinateAnalyzer';
 
@@ -95,6 +96,8 @@ export interface PerformanceMetrics {
   primitiveCount: number;
   triangleCount: number;
   vertexCount: number;
+  gaussianSplatCount: number;
+  voxelCellCount: number;
   drawCalls: number;
   materialCount: number;
   textureCount: number;
@@ -115,8 +118,20 @@ export interface ValidationReport {
   issues: InspectorIssue[];
 }
 
+export interface TileSummary {
+  key: string;
+  info: LoadedTileInfo;
+  instances: {
+    count: number;
+    orientation: I3dmOrientation;
+    hasScale: boolean;
+    recenterOffset: [number, number, number] | null;
+  } | null;
+}
+
 export interface LoadedAsset {
   bundle: AssetBundle;
+  tile: TileSummary | null;
   source: SourceGltfDocument;
   runtime: RuntimeGltfScene;
   inspection: InspectionIndex;

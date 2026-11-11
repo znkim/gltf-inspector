@@ -1,6 +1,7 @@
-import { Box3, Vector3, type Object3D } from 'three';
+import { Vector3, type Object3D } from 'three';
 import type { InspectorIssue } from '../types/gltf';
 import type { WarningThresholds } from '../state/settingsStore';
+import { worldAabb } from './BoundingBoxInspector';
 
 export interface CoordinateAnalysis {
   maximumAbsoluteVertexCoordinate: number;
@@ -21,7 +22,7 @@ export function estimateFloat32Spacing(value: number): number {
 
 export function analyzeCoordinates(root: Object3D): CoordinateAnalysis {
   root.updateMatrixWorld(true);
-  const sceneBox = new Box3().setFromObject(root);
+  const sceneBox = worldAabb(root);
   const center = new Vector3();
   const size = new Vector3();
   sceneBox.getCenter(center);

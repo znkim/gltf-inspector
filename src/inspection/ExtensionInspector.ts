@@ -25,7 +25,12 @@ export const SUPPORTED_EXTENSIONS: SupportedExtensionInfo[] = [
   { name: 'KHR_materials_sheen', status: 'native', description: 'Handled by Three.js GLTFLoader.' },
   { name: 'KHR_materials_iridescence', status: 'native', description: 'Handled by Three.js GLTFLoader.' },
   { name: 'KHR_materials_anisotropy', status: 'native', description: 'Handled by Three.js GLTFLoader.' },
-  { name: 'KHR_materials_emissive_strength', status: 'native', description: 'Handled by Three.js GLTFLoader.' }
+  { name: 'KHR_materials_emissive_strength', status: 'native', description: 'Handled by Three.js GLTFLoader.' },
+  { name: 'KHR_gaussian_splatting', status: 'plugin', description: 'Rendered with the inspector Gaussian splat plugin (degree-0 color baseline).' },
+  { name: 'KHR_gaussian_splatting_compression_spz_2', status: 'decoder', description: 'Decoded with the pinned SPZ browser decoder.' },
+  { name: 'EXT_primitive_voxels', status: 'plugin', description: 'Draft voxel primitives are visualized as sampled colored points.' },
+  { name: 'CESIUM_RTC', status: 'metadata-only', description: 'RTC center is reported; geometry is shown relative to it.' },
+  { name: 'KHR_implicit_shapes', status: 'metadata-only', description: 'Shape metadata is retained for EXT_primitive_voxels inspection.' }
 ];
 
 const STATUS: Record<string, ExtensionStatus> = Object.fromEntries(SUPPORTED_EXTENSIONS.map((extension) => [extension.name, extension.status]));

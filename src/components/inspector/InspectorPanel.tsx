@@ -61,6 +61,7 @@ export function InspectorPanel() {
           <>
             <AssetStats asset={asset} />
             <AssetFileSection asset={asset} />
+            <TileSection asset={asset} expandedNumbers={expandedNumbers} />
             <section className="section">
               <h3 className="section-title">Asset</h3>
               <KeyValue label="Nodes" value={asset.source.nodes.length} />
@@ -125,6 +126,9 @@ export function InspectorPanel() {
               const stats = inspectPrimitive(asset.source, selectedPrimitiveDef);
               return (
                 <>
+                  <KeyValue label="Representation" value={stats.representation} />
+                  {stats.splatCount > 0 && <KeyValue label="Splat Count" value={stats.splatCount} />}
+                  {stats.voxelCount > 0 && <KeyValue label="Voxel Cells" value={stats.voxelCount} />}
                   <KeyValue label="Mode" value={stats.mode} />
                   <KeyValue label="Indexed" value={String(stats.indexed)} />
                   <KeyValue label="Vertex Count" value={stats.vertexCount} />
@@ -174,6 +178,9 @@ export function InspectorPanel() {
               return (
                 <div key={primitiveIndex} className="section">
                   <KeyValue label="Primitive" value={primitiveIndex} />
+                  <KeyValue label="Representation" value={stats.representation} />
+                  {stats.splatCount > 0 && <KeyValue label="Splat Count" value={stats.splatCount} />}
+                  {stats.voxelCount > 0 && <KeyValue label="Voxel Cells" value={stats.voxelCount} />}
                   <KeyValue label="Mode" value={stats.mode} />
                   <KeyValue label="Indexed" value={String(stats.indexed)} />
                   <KeyValue label="Vertex Count" value={stats.vertexCount} />
@@ -238,6 +245,8 @@ function AssetStats({ asset }: { asset: LoadedAsset }) {
         <Stat label="Triangles" value={perf.triangleCount} />
         <Stat label="Vertices" value={perf.vertexCount} />
         <Stat label="Meshes" value={perf.meshCount} />
+        {perf.gaussianSplatCount > 0 && <Stat label="Splats" value={perf.gaussianSplatCount} />}
+        {perf.voxelCellCount > 0 && <Stat label="Voxels" value={perf.voxelCellCount} />}
         <Stat label="Primitives" value={perf.primitiveCount} />
         <Stat label="Draw Calls" value={perf.drawCalls} />
         <Stat label="Textures" value={perf.textureCount} />
@@ -269,6 +278,40 @@ function AssetFileSection({ asset }: { asset: LoadedAsset }) {
         </div>
       )}
       {resources.length === 0 && <div className="tree-kind">No external buffers or textures in this bundle.</div>}
+    </section>
+  );
+}
+
+function TileSection({ asset, expandedNumbers }: { asset: LoadedAsset; expandedNumbers: boolean }) {
+  if (!asset.tile) {
+    return null;
+  }
+  const { info, instances } = asset.tile;
+  const { container, content } = info;
+  const featureKeys = Object.keys(content.featureTable.json);
+  const batchKeys = Object.keys(content.batchTable.json);
+  return (
+    <section className="section">
+      <h3 className="section-title">3D Tiles</h3>
+      <KeyValue label="Format" value={container.format === 'cmpt' ? `cmpt → ${content.format} (#${info.contentIndex})` : content.format} />
+      <KeyValue label="Version" value={content.version} />
+      <KeyValue label="Byte Length" value={bytes(content.byteLength)} />
+      {container.format === 'cmpt' && <KeyValue label="Inner Tiles" value={container.contents.length + container.skippedInnerTiles.length} />}
+      <KeyValue label="glTF Payload" value={content.gltfFormat === 'uri' ? `uri: ${content.gltfUri}` : 'embedded GLB'} />
+      <KeyValue label="Batch Length" value={content.batchLength ?? '-'} />
+      <KeyValue label="RTC_CENTER" value={format(content.rtcCenter, expandedNumbers)} />
+      <KeyValue label="Feature Table" value={`${featureKeys.length} key(s), ${bytes(content.featureTable.binary.byteLength)} binary`} />
+      {featureKeys.length > 0 && <div className="tree-kind mono">{featureKeys.join(', ')}</div>}
+      <KeyValue label="Batch Table" value={`${batchKeys.length} propert${batchKeys.length === 1 ? 'y' : 'ies'}, ${bytes(content.batchTable.binary.byteLength)} binary`} />
+      {batchKeys.length > 0 && <div className="tree-kind mono">{batchKeys.join(', ')}</div>}
+      {instances && (
+        <>
+          <KeyValue label="Instances" value={instances.count} />
+          <KeyValue label="Orientation" value={instances.orientation} />
+          <KeyValue label="Instance Scale" value={instances.hasScale ? 'yes' : 'no'} />
+          {instances.recenterOffset && <KeyValue label="Recenter Offset" value={format(instances.recenterOffset, expandedNumbers)} />}
+        </>
+      )}
     </section>
   );
 }
@@ -436,6 +479,9 @@ function resourceKind(path: string): string {
   }
   if (['png', 'jpg', 'jpeg', 'webp', 'ktx2'].includes(extension)) {
     return 'texture';
+  }
+  if (['b3dm', 'i3dm', 'cmpt'].includes(extension)) {
+    return '3d tiles';
   }
   if (['gltf', 'glb'].includes(extension)) {
     return 'gltf';

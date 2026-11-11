@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Box3, BoxGeometry, Mesh, MeshBasicMaterial, Object3D, Vector3 } from 'three';
+import { Box3, BoxGeometry, BufferGeometry, Mesh, MeshBasicMaterial, Object3D, Vector3 } from 'three';
 import { nodeOwnBox, nodeSubtreeBoxRelative, transformedLocalBoxCorners, worldAabb } from '../inspection/BoundingBoxInspector';
 
 describe('bounding boxes', () => {
@@ -39,5 +39,12 @@ describe('bounding boxes', () => {
     const box = worldAabb(mesh);
     expect(box.min.x).toBeCloseTo(9);
     expect(box.max.x).toBeCloseTo(11);
+  });
+
+  it('ignores geometry without a computable bounding box', () => {
+    const root = new Object3D();
+    root.add(new Mesh(new BufferGeometry(), new MeshBasicMaterial()));
+    expect(() => worldAabb(root)).not.toThrow();
+    expect(worldAabb(root).isEmpty()).toBe(true);
   });
 });
