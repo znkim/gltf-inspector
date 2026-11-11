@@ -171,7 +171,7 @@ async function readBuffer(asset: LoadedAsset, bufferIndex: number): Promise<Uint
   }
 
   const primary = asset.bundle.findPrimary();
-  if (!primary || !primary.key.toLowerCase().endsWith('.glb')) {
+  if (!primary || !primary.file.name.toLowerCase().endsWith('.glb')) {
     return null;
   }
   return parseGlbJsonChunk(await primary.file.arrayBuffer()).binaryChunk;

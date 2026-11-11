@@ -15,6 +15,21 @@ export function buildInspectionReport(asset: LoadedAsset) {
       materials: asset.source.materials.length,
       textures: asset.source.textures.length
     },
+    tile: asset.tile ? {
+      key: asset.tile.key,
+      containerFormat: asset.tile.info.container.format,
+      contentFormat: asset.tile.info.content.format,
+      contentIndex: asset.tile.info.contentIndex,
+      version: asset.tile.info.content.version,
+      byteLength: asset.tile.info.content.byteLength,
+      batchLength: asset.tile.info.content.batchLength,
+      rtcCenter: asset.tile.info.content.rtcCenter,
+      gltfFormat: asset.tile.info.content.gltfFormat,
+      gltfUri: asset.tile.info.content.gltfUri,
+      featureTable: asset.tile.info.content.featureTable.json,
+      batchTableProperties: Object.keys(asset.tile.info.content.batchTable.json),
+      instances: asset.tile.instances
+    } : null,
     extensions: {
       used: asset.source.extensionsUsed.map((extension) => ({ extension, status: classifyExtension(extension) })),
       required: asset.source.extensionsRequired.map((extension) => ({ extension, status: classifyExtension(extension) }))

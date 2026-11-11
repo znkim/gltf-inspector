@@ -19,6 +19,7 @@ Browser-based glTF/GLB inspector for scene hierarchy, materials, textures, geome
 ## Highlights
 
 - Open `.glb`, `.gltf`, external resource folders, and `.zip` packages directly in the browser.
+- Open glTF-based 3D Tiles content (`.b3dm`, `.i3dm`, `.cmpt`): the embedded GLB is extracted, feature/batch table metadata is shown, and i3dm instances are rendered through `EXT_mesh_gpu_instancing`.
 - Inspect scene hierarchy, selection stats, bounding boxes, materials, textures, UV maps, and raw JSON.
 - Switch debug views including PBR, Unlit, Face Orientation, Normal Texture, UV Color, Wireframe, Depth, Material ID, and Node ID.
 - Preview texture resources, material texture bindings, and validation results.

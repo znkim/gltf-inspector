@@ -16,16 +16,18 @@ import { buildInspectionIndex } from '../inspection/ThreeGltfAdapter';
 import { classifyExtension } from '../inspection/ExtensionInspector';
 import { inspectPrimitive } from '../inspection/GeometryInspector';
 import { worldAabb } from '../inspection/BoundingBoxInspector';
-import type { InspectorIssue, LoadedAsset, PerformanceMetrics, RuntimeGltfScene } from '../types/gltf';
+import type { InspectorIssue, LoadedAsset, PerformanceMetrics, RuntimeGltfScene, TileSummary } from '../types/gltf';
 import { analyzeCoordinates } from '../inspection/CoordinateAnalyzer';
 import { validateBundle } from '../validation/ValidationService';
 import { registerRepresentationPlugins } from './GltfRepresentationPlugins';
+import { decodeI3dmInstances } from './I3dmInstancing';
+import type { I3dmInstanceSet } from './I3dmInstancing';
 
 export async function loadGltfAsset(bundle: AssetBundle, renderer: WebGLRenderer): Promise<LoadedAsset> {
   const startedAt = performance.now();
   const primary = bundle.findPrimary();
   if (!primary) {
-    throw new Error('No .glb or .gltf file was found in the dropped files.');
+    throw new Error('No .glb, .gltf, .b3dm, .i3dm or .cmpt file was found in the dropped files.');
   }
 
   const sourceJson = await parseSourceJson(primary.file);
@@ -57,7 +59,7 @@ export async function loadGltfAsset(bundle: AssetBundle, renderer: WebGLRenderer
       message: 'Draft voxel primitives are shown as a sampled Cartesian point preview; implicit cylinder and ellipsoid shapes are retained as metadata only.'
     });
   }
-
+  const { tile, instances } = inspectTile(primary, issues);
 
   const manager = new LoadingManager();
   manager.setURLModifier((url) => bundle.resolveObjectUrl(url));
@@ -71,7 +73,7 @@ export async function loadGltfAsset(bundle: AssetBundle, renderer: WebGLRenderer
   loader.setMeshoptDecoder(MeshoptDecoder);
 
   const parseStartedAt = performance.now();
-  const runtimeData = await prepareRuntimeGltfData(primary.file);
+  const runtimeData = await prepareRuntimeGltfData(primary.file, instances);
   for (const warning of runtimeData.warnings) {
     issues.push({
       id: `runtime-compat-${warning}`,
@@ -113,6 +115,7 @@ export async function loadGltfAsset(bundle: AssetBundle, renderer: WebGLRenderer
 
   return {
     bundle,
+    tile,
     source,
     runtime,
     inspection,
@@ -122,6 +125,73 @@ export async function loadGltfAsset(bundle: AssetBundle, renderer: WebGLRenderer
     performance: performanceMetrics,
     originalModel: runtime.scene
   };
+}
+
+function inspectTile(primary: BundleFile, issues: InspectorIssue[]): { tile: TileSummary | null; instances: I3dmInstanceSet | null } {
+  const info = primary.tile;
+  if (!info) {
+    return { tile: null, instances: null };
+  }
+  const { content } = info;
+  if (content.legacyHeader) {
+    issues.push({
+      id: 'tile-legacy-header',
+      severity: 'warning',
+      code: 'TILE_LEGACY_B3DM_HEADER',
+      message: 'b3dm uses a deprecated legacy header layout.',
+      resource: primary.key
+    });
+  }
+  if (content.rtcCenter) {
+    issues.push({
+      id: 'tile-rtc-center',
+      severity: 'info',
+      code: 'TILE_RTC_CENTER',
+      message: `Feature table RTC_CENTER (${content.rtcCenter.join(', ')}) is not applied; geometry is shown relative to it.`,
+      resource: primary.key
+    });
+  }
+  issues.push({
+    id: 'tile-up-axis',
+    severity: 'info',
+    code: 'TILE_GLTF_Y_UP',
+    message: 'Tile glTF is shown in its native y-up frame; the 3D Tiles y-up to z-up rotation and tileset transforms are not applied.',
+    resource: primary.key
+  });
+  let instances: I3dmInstanceSet | null = null;
+  if (content.format === 'i3dm') {
+    try {
+      instances = decodeI3dmInstances(content);
+      if (instances.recenterOffset) {
+        issues.push({
+          id: 'tile-i3dm-recentered',
+          severity: 'info',
+          code: 'TILE_I3DM_RECENTERED',
+          message: `i3dm instance positions were recentered by (${instances.recenterOffset.map((value) => value.toFixed(3)).join(', ')}) for display precision.`,
+          resource: primary.key
+        });
+      }
+    } catch (error) {
+      issues.push({
+        id: 'tile-i3dm-instances-failed',
+        severity: 'error',
+        code: 'TILE_I3DM_INSTANCES_FAILED',
+        message: error instanceof Error ? error.message : String(error),
+        resource: primary.key
+      });
+    }
+  }
+  const tile: TileSummary = {
+    key: primary.key,
+    info,
+    instances: instances && {
+      count: instances.count,
+      orientation: instances.orientation,
+      hasScale: instances.hasScale,
+      recenterOffset: instances.recenterOffset
+    }
+  };
+  return { tile, instances };
 }
 
 function parseWithLoader(loader: GLTFLoader, primary: BundleFile, data: ArrayBuffer | string): Promise<GLTF> {

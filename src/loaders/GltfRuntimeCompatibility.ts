@@ -1,5 +1,7 @@
 import type { GltfJsonObject, GltfJsonValue } from '../types/gltf';
 import { parseGlbJsonChunk } from './GlbParser';
+import { applyInstancesToGltf } from './I3dmInstancing';
+import type { I3dmInstanceSet } from './I3dmInstancing';
 
 const SPEC_GLOSS_EXTENSION = 'KHR_materials_pbrSpecularGlossiness';
 const GLB_MAGIC = 0x46546c67;
@@ -12,11 +14,11 @@ export interface RuntimeCompatibilityResult {
   warnings: string[];
 }
 
-export async function prepareRuntimeGltfData(file: File): Promise<RuntimeCompatibilityResult> {
+export async function prepareRuntimeGltfData(file: File, instances?: I3dmInstanceSet | null): Promise<RuntimeCompatibilityResult> {
   const buffer = await file.arrayBuffer();
   if (file.name.toLowerCase().endsWith('.glb')) {
     const parsed = parseGlbJsonChunk(buffer);
-    const converted = convertSpecGlossToMetallicRoughness(parsed.json);
+    const converted = convertJson(parsed.json, instances);
     if (!converted.changed) {
       return { data: buffer, warnings: [] };
     }
@@ -27,11 +29,24 @@ export async function prepareRuntimeGltfData(file: File): Promise<RuntimeCompati
   }
 
   const json = JSON.parse(new TextDecoder().decode(buffer)) as GltfJsonObject;
-  const converted = convertSpecGlossToMetallicRoughness(json);
+  const converted = convertJson(json, instances);
   return {
     data: converted.changed ? JSON.stringify(json) : buffer,
     warnings: converted.warnings
   };
+}
+
+function convertJson(json: GltfJsonObject, instances: I3dmInstanceSet | null | undefined): { changed: boolean; warnings: string[] } {
+  const specGloss = convertSpecGlossToMetallicRoughness(json);
+  if (!instances) {
+    return specGloss;
+  }
+  const instancing = applyInstancesToGltf(json, instances);
+  const warnings = [...specGloss.warnings];
+  if (instancing.skippedSkinned > 0) {
+    warnings.push(`${instancing.skippedSkinned} skinned or degenerate mesh node(s) were not instanced from i3dm.`);
+  }
+  return { changed: specGloss.changed || instancing.applied > 0, warnings };
 }
 
 function convertSpecGlossToMetallicRoughness(json: GltfJsonObject): { changed: boolean; warnings: string[] } {
